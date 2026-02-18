@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calendar Puzzle</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Lora:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#F2EDE3; --board-bg:#E6D9C0; --board-border:#7A5C30;
+    --cell-bg:#FBF8F0; --cell-text:#3A2A10; --cell-border:#C8AA76;
+    --month-bg:#EFE5CC; --dow-bg:#E8E0D0;
+    --selected-ring:#D4601A; --target-color:#D4B017;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:var(--bg);font-family:'Lora',Georgia,serif;
+    min-height:100vh;display:flex;flex-direction:column;align-items:center;
+    padding:18px 12px 40px;
+    background-image:
+      radial-gradient(ellipse at 20% 10%,rgba(200,160,80,.08) 0%,transparent 60%),
+      radial-gradient(ellipse at 80% 90%,rgba(160,100,40,.07) 0%,transparent 60%);
+  }
+  h1{font-family:'Playfair Display',serif;color:#3A2A10;font-size:2.1rem;
+     margin-bottom:4px;letter-spacing:.03em;text-shadow:0 1px 3px rgba(100,60,10,.12)}
+  .subtitle{color:#7A5C30;font-size:.9rem;margin-bottom:18px;font-style:italic}
+  .game-area{display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;justify-content:center}
+
+  /* Board */
+  .board-container{background:var(--board-bg);border:3px solid var(--board-border);
+    border-radius:10px;padding:12px;
+    box-shadow:0 8px 28px rgba(60,35,10,.22),inset 0 1px 0 rgba(255,255,255,.3)}
+  .board{display:grid;grid-template-columns:repeat(7,60px);grid-template-rows:repeat(8,60px);gap:0}
+  .cell{width:60px;height:60px;border:1px solid var(--cell-border);border-radius:0;
+    background:#ffffff;display:flex;align-items:center;justify-content:center;
+    font-size:12.5px;font-weight:500;color:var(--cell-text);cursor:pointer;
+    transition:background .12s,transform .08s;
+    user-select:none;position:relative;overflow:hidden}
+  .cell.month-cell{background:#ffffff}
+  .cell.dow-cell{background:#ffffff}
+  .cell.target-cell{box-shadow:inset 0 0 0 2.5px var(--target-color);animation:tp 2.4s ease-in-out infinite}
+  @keyframes tp{
+    0%,100%{box-shadow:inset 0 0 0 2.5px var(--target-color),0 0 0 0 rgba(212,176,23,0)}
+    50%{box-shadow:inset 0 0 0 2.5px var(--target-color),0 0 6px 3px rgba(212,176,23,.28)}}
+  .cell:hover:not(.inactive):not(.covered){background:#FFF8E8;z-index:2}
+  .cell.inactive{visibility:hidden;pointer-events:none;border-color:transparent}
+  .cell.covered{cursor:pointer}
+  .cell.preview-valid{background:rgba(70,130,80,.3)!important;border-color:#4A7C59!important}
+  .cell.preview-invalid{background:rgba(180,55,55,.2)!important;border-color:#B54040!important}
+  .cell-piece-overlay{position:absolute;inset:0;border-radius:0;opacity:0;transition:opacity .15s}
+  .cell-piece-overlay.visible{opacity:.82}
+  .cell-label{position:relative;z-index:2;pointer-events:none;font-size:12px;font-weight:600}
+
+  /* Sidebar */
+  .sidebar{display:flex;flex-direction:column;gap:12px;width:220px}
+  .panel{background:var(--board-bg);border:2px solid var(--board-border);border-radius:8px;
+    padding:12px 14px;box-shadow:0 4px 14px rgba(60,35,10,.14)}
+  .panel h3{font-family:'Playfair Display',serif;font-size:.95rem;color:#5C3A18;
+    margin-bottom:10px;border-bottom:1px solid #C8AA76;padding-bottom:6px;letter-spacing:.02em}
+  .pieces-tray{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .piece-wrapper{display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:3px;cursor:pointer;padding:6px 4px;border:2px solid transparent;border-radius:6px;
+    transition:all .15s;min-height:56px;background:rgba(255,255,255,.35)}
+  .piece-wrapper:hover:not(.placed){background:rgba(139,111,71,.12);border-color:var(--board-border)}
+  .piece-wrapper.selected{border-color:var(--selected-ring);background:rgba(212,96,26,.1);
+    box-shadow:0 0 0 1px rgba(212,96,26,.3)}
+  .piece-wrapper.placed{opacity:.28;cursor:default;filter:grayscale(.4)}
+  .piece-mini{display:grid;gap:0}
+  .piece-mini-cell{width:13px;height:13px;border-radius:0;border:none}
+  .ctrl-row{display:flex;gap:6px;margin-bottom:8px}
+  .btn{background:#6B4820;color:#FAF7EF;border:none;border-radius:5px;padding:8px 10px;
+    font-family:'Lora',serif;font-size:12px;cursor:pointer;transition:background .13s,transform .08s;
+    flex:1;display:flex;align-items:center;justify-content:center;gap:4px}
+  .btn:hover{background:#8B6A3A;transform:translateY(-1px)}
+  .btn:active{background:#4A3010;transform:none}
+  .btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+  .btn-reset{background:transparent;color:#7A5230;border:2px solid #C8AA76;font-size:12px;
+    width:100%;padding:7px;margin-top:2px;flex:none}
+  .btn-reset:hover{background:rgba(100,60,20,.08);color:#5A3810}
+  .kbd{display:inline-block;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);
+    border-radius:3px;padding:0 4px;font-size:10px;font-family:monospace;line-height:1.4}
+  .selected-info{font-size:11.5px;color:#5C3A18;text-align:center;font-style:italic;
+    min-height:32px;display:flex;align-items:center;justify-content:center;
+    margin-bottom:8px;line-height:1.4}
+  .instructions{font-size:11.5px;color:#5C3A18;line-height:1.7}
+  .instructions li{margin-left:14px}
+
+  /* Win */
+  .win-overlay{position:fixed;inset:0;background:rgba(30,18,6,.72);display:none;
+    align-items:center;justify-content:center;z-index:1000;animation:fadeIn .3s ease}
+  .win-overlay.show{display:flex}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  .win-box{background:#FBF8F0;border:3px solid #7A5C30;border-radius:14px;padding:40px 46px;
+    text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5);max-width:380px;
+    animation:popIn .35s cubic-bezier(.34,1.56,.64,1)}
+  @keyframes popIn{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
+  .win-box h2{font-family:'Playfair Display',serif;font-size:2rem;color:#3A2A10;margin-bottom:8px}
+  .win-box p{color:#7A5230;font-style:italic;font-size:.95rem;margin-bottom:22px;line-height:1.6}
+  .win-date{font-family:'Playfair Display',serif;font-size:1.25rem;color:#3A2A10;
+    margin-bottom:6px;font-weight:600}
+</style>
+</head>
+<body>
+
+<div class="win-overlay" id="winOverlay">
+  <div class="win-box">
+    <h2>&#127881; Puzzle Solved!</h2>
+    <div class="win-date" id="winDate"></div>
+    <p>You've uncovered today's date.<br>Brilliant work!</p>
+    <button class="btn" style="margin:auto;max-width:160px;padding:10px 20px;font-size:14px;flex:none" onclick="closeWin()">Keep Playing</button>
+  </div>
+</div>
+
+<h1>Calendar Puzzle</h1>
+<div class="subtitle" id="subtitleEl">Place all pieces to reveal today's date</div>
+
+<div class="game-area">
+  <div class="board-container">
+    <div class="board" id="board"></div>
+  </div>
+  <div class="sidebar">
+    <div class="panel">
+      <h3>Pieces <span id="progressText" style="font-family:Lora,serif;font-weight:400;font-size:.8rem;color:#9A7040"></span></h3>
+      <div class="pieces-tray" id="piecesTray"></div>
+    </div>
+    <div class="panel">
+      <h3>Controls</h3>
+      <div class="selected-info" id="selectedInfo">&#8592; Select a piece to begin</div>
+      <div class="ctrl-row">
+        <button class="btn" id="btnRotate" onclick="rotateSelected()" disabled>&#8635; Rotate <span class="kbd">R</span></button>
+        <button class="btn" id="btnFlip" onclick="flipSelected()" disabled>&#8660; Flip <span class="kbd">F</span></button>
+      </div>
+      <button class="btn btn-reset" onclick="resetGame()">&#8634; Reset Puzzle</button>
+    </div>
+    <div class="panel">
+      <h3>How To Play</h3>
+      <ol class="instructions">
+        <li>Select a piece from the tray</li>
+        <li>Rotate <b>(R)</b> or flip <b>(F)</b> it</li>
+        <li>Click the board to place it</li>
+        <li>Click a placed piece to remove it</li>
+        <li>Leave the <span style="color:#B8880A;font-weight:600">&#10022; gold-bordered</span> cells exposed!</li>
+      </ol>
+    </div>
+  </div>
+</div>
+
+<script>
+const PIECE_DEFS=[
+  {id:0,name:'A',color:'#C05A3A',cells:[[0,0],[0,1],[0,2],[1,0]]},
+  {id:1,name:'B',color:'#4A7C59',cells:[[0,0],[0,1],[0,2],[1,1],[2,1]]},
+  {id:2,name:'C',color:'#5B7FA8',cells:[[0,1],[0,2],[1,1],[2,0],[2,1]]},
+  {id:3,name:'D',color:'#C9994C',cells:[[0,0],[0,1],[0,2],[0,3]]},
+  {id:4,name:'E',color:'#8B7BA8',cells:[[0,2],[0,3],[1,0],[1,1],[1,2]]},
+  {id:5,name:'F',color:'#B55020',cells:[[0,0],[0,1],[1,1],[2,1],[3,1]]},
+  {id:6,name:'G',color:'#5C8A3A',cells:[[0,1],[0,2],[1,0],[1,1]]},
+  {id:7,name:'H',color:'#3E6E9E',cells:[[0,0],[0,1],[0,2],[1,2],[2,2]]},
+  {id:8,name:'I',color:'#A83040',cells:[[0,0],[0,2],[1,0],[1,1],[1,2]]},
+  {id:9,name:'J',color:'#6B7C8C',cells:[[0,0],[0,1],[0,2],[1,0],[1,1]]},
+];
+
+function isActive(r,c){
+  if(r===0||r===1) return c>=0&&c<6;
+  if(r>=2&&r<=6)   return c>=0&&c<7;
+  if(r===7)        return c>=4&&c<7;
+  return false;
+}
+
+function getCellLabel(r,c){
+  if(r===0) return['Jan','Feb','Mar','Apr','May','Jun'][c];
+  if(r===1) return['Jul','Aug','Sep','Oct','Nov','Dec'][c];
+  if(r>=2&&r<=5) return String((r-2)*7+c+1);
+  if(r===6){
+    if(c<=2) return String(29+c);
+    return['Sun','Mon','Tue','Wed'][c-3];
+  }
+  if(r===7) return['Thu','Fri','Sat'][c-4];
+  return'';
+}
+
+function computeTargets(){
+  const t=new Date();
+  const mo=t.getMonth(), day=t.getDate(), dow=t.getDay();
+  const mr=mo<6?0:1, mc=mo<6?mo:mo-6;
+  let dr,dc;
+  if(day<=28){dr=Math.floor((day-1)/7)+2;dc=(day-1)%7}
+  else{dr=6;dc=day-29}
+  let wr,wc;
+  if(dow<=3){wr=6;wc=dow+3}else{wr=7;wc=dow}
+  return[[mr,mc],[dr,dc],[wr,wc]];
+}
+
+const TARGET_CELLS=computeTargets();
+const TARGET_SET=new Set(TARGET_CELLS.map(([r,c])=>`${r},${c}`));
+
+function normalize(cells){
+  const minR=Math.min(...cells.map(([r])=>r));
+  const minC=Math.min(...cells.map(([,c])=>c));
+  return cells.map(([r,c])=>[r-minR,c-minC]);
+}
+function rotateCW(cells){return normalize(cells.map(([r,c])=>[c,-r]))}
+function flipH(cells){return normalize(cells.map(([r,c])=>[r,-c]))}
+
+let pieces,boardPieces,selectedPieceId=null,hoverCell=null,cellEls=[];
+
+function initState(){
+  pieces=PIECE_DEFS.map(p=>({...p,cells:p.cells.map(c=>[...c]),placed:false}));
+  boardPieces=Array.from({length:8},()=>Array(7).fill(null));
+  selectedPieceId=null; hoverCell=null;
+}
+
+function buildBoard(){
+  const board=document.getElementById('board');
+  board.innerHTML=''; cellEls=[];
+  for(let r=0;r<8;r++){
+    cellEls[r]=[];
+    for(let c=0;c<7;c++){
+      const cell=document.createElement('div');
+      cell.className='cell';
+      cellEls[r][c]=cell;
+      if(!isActive(r,c)){
+        cell.classList.add('inactive');
+      } else {
+        if(r<=1) cell.classList.add('month-cell');
+        else if(r>=6) cell.classList.add('dow-cell');
+        if(TARGET_SET.has(`${r},${c}`)) cell.classList.add('target-cell');
+        const ov=document.createElement('div');
+        ov.className='cell-piece-overlay'; cell.appendChild(ov);
+        const lb=document.createElement('span');
+        lb.className='cell-label'; lb.textContent=getCellLabel(r,c); cell.appendChild(lb);
+        cell.addEventListener('mouseenter',()=>{hoverCell={r,c};refreshBoard()});
+        cell.addEventListener('mouseleave',()=>{hoverCell=null;refreshBoard()});
+        cell.addEventListener('click',()=>onCellClick(r,c));
+      }
+      board.appendChild(cell);
+    }
+  }
+}
+
+function refreshBoard(){
+  for(let r=0;r<8;r++){
+    for(let c=0;c<7;c++){
+      if(!isActive(r,c)) continue;
+      const cell=cellEls[r][c];
+      const ov=cell.querySelector('.cell-piece-overlay');
+      const pid=boardPieces[r][c];
+      if(pid!==null){ov.style.background=pieces[pid].color;ov.classList.add('visible');cell.classList.add('covered')}
+      else{ov.classList.remove('visible');cell.classList.remove('covered')}
+      cell.classList.remove('preview-valid','preview-invalid');
+    }
+  }
+  if(selectedPieceId!==null&&hoverCell!==null&&!pieces[selectedPieceId].placed){
+    const{r:ar,c:ac}=hoverCell;
+    const valid=isValidPlacement(selectedPieceId,ar,ac);
+    const cls=valid?'preview-valid':'preview-invalid';
+    for(const[dr,dc] of pieces[selectedPieceId].cells){
+      const r=ar+dr,c=ac+dc;
+      if(r>=0&&r<8&&c>=0&&c<7) cellEls[r][c].classList.add(cls);
+    }
+  }
+}
+
+function buildTray(){
+  const tray=document.getElementById('piecesTray');
+  tray.innerHTML='';
+  let placed=0;
+  for(let i=0;i<pieces.length;i++){
+    const p=pieces[i];
+    if(p.placed) placed++;
+    const wrap=document.createElement('div');
+    wrap.className='piece-wrapper';
+    if(p.placed) wrap.classList.add('placed');
+    if(selectedPieceId===i) wrap.classList.add('selected');
+    const rows=p.cells.map(([r])=>r), cols=p.cells.map(([,c])=>c);
+    const maxR=Math.max(...rows), maxC=Math.max(...cols);
+    const cs=new Set(p.cells.map(([r,c])=>`${r},${c}`));
+    const mg=document.createElement('div');
+    mg.className='piece-mini';
+    mg.style.gridTemplateColumns=`repeat(${maxC+1},13px)`;
+    mg.style.gridTemplateRows=`repeat(${maxR+1},13px)`;
+    mg.style.display='grid';
+    for(let r=0;r<=maxR;r++){
+      for(let c=0;c<=maxC;c++){
+        const mc=document.createElement('div');
+        if(cs.has(`${r},${c}`)){mc.className='piece-mini-cell';mc.style.background=p.color}
+        else{mc.style.width='13px';mc.style.height='13px'}
+        mg.appendChild(mc);
+      }
+    }
+    wrap.appendChild(mg);
+    if(!p.placed){
+      wrap.addEventListener('click',()=>{
+        selectedPieceId=(selectedPieceId===i)?null:i;
+        buildTray(); updateControls(); refreshBoard();
+      });
+    }
+    tray.appendChild(wrap);
+  }
+  document.getElementById('progressText').textContent=`(${placed}/10)`;
+}
+
+function updateControls(){
+  const has=selectedPieceId!==null&&!pieces[selectedPieceId].placed;
+  document.getElementById('btnRotate').disabled=!has;
+  document.getElementById('btnFlip').disabled=!has;
+  const info=document.getElementById('selectedInfo');
+  if(has) info.textContent=`Piece ${pieces[selectedPieceId].name} selected \u2022 click board to place`;
+  else info.textContent='\u2190 Select a piece to begin';
+}
+
+function isValidPlacement(pid,ar,ac){
+  for(const[dr,dc] of pieces[pid].cells){
+    const r=ar+dr,c=ac+dc;
+    if(r<0||r>=8||c<0||c>=7) return false;
+    if(!isActive(r,c)) return false;
+    if(boardPieces[r][c]!==null) return false;
+  }
+  return true;
+}
+
+function placePiece(pid,ar,ac){
+  for(const[dr,dc] of pieces[pid].cells) boardPieces[ar+dr][ac+dc]=pid;
+  pieces[pid].placed=true;
+}
+
+function removePiece(pid){
+  for(let r=0;r<8;r++) for(let c=0;c<7;c++) if(boardPieces[r][c]===pid) boardPieces[r][c]=null;
+  pieces[pid].placed=false;
+}
+
+function onCellClick(r,c){
+  const occ=boardPieces[r][c];
+  if(selectedPieceId!==null&&!pieces[selectedPieceId].placed){
+    if(isValidPlacement(selectedPieceId,r,c)){
+      placePiece(selectedPieceId,r,c);
+      selectedPieceId=null;
+      buildTray(); updateControls(); refreshBoard(); checkWin();
+    }
+  } else if(occ!==null){
+    removePiece(occ);
+    selectedPieceId=occ;
+    buildTray(); updateControls(); refreshBoard();
+  }
+}
+
+function rotateSelected(){
+  if(selectedPieceId===null||pieces[selectedPieceId].placed) return;
+  pieces[selectedPieceId].cells=rotateCW(pieces[selectedPieceId].cells);
+  buildTray(); refreshBoard();
+}
+
+function flipSelected(){
+  if(selectedPieceId===null||pieces[selectedPieceId].placed) return;
+  pieces[selectedPieceId].cells=flipH(pieces[selectedPieceId].cells);
+  buildTray(); refreshBoard();
+}
+
+function checkWin(){
+  const unc=[];
+  for(let r=0;r<8;r++) for(let c=0;c<7;c++) if(isActive(r,c)&&boardPieces[r][c]===null) unc.push(`${r},${c}`);
+  if(unc.length!==3) return;
+  if(unc.every(k=>TARGET_SET.has(k))){
+    const t=new Date();
+    document.getElementById('winDate').textContent=t.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+    document.getElementById('winOverlay').classList.add('show');
+  }
+}
+
+function closeWin(){ document.getElementById('winOverlay').classList.remove('show') }
+function resetGame(){ initState(); buildTray(); updateControls(); refreshBoard() }
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='r'||e.key==='R') rotateSelected();
+  if(e.key==='f'||e.key==='F') flipSelected();
+  if(e.key==='Escape'){selectedPieceId=null;buildTray();updateControls();refreshBoard()}
+});
+
+(function(){
+  const t=new Date();
+  document.getElementById('subtitleEl').textContent=
+    `Today is ${t.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'})} — can you expose it?`;
+  initState(); buildBoard(); buildTray(); updateControls(); refreshBoard();
+})();
+</script>
+</body>
+</html>
