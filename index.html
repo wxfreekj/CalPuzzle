@@ -325,7 +325,7 @@ function getOrientations(baseCells){
   return result;
 }
 
-const MAX_SOL=200;
+const MAX_SOL=6;
 const MAX_SOL_MS=400; // hard time cap — never block the browser longer than this
 
 // Count solutions up to MAX_SOL, aborting after MAX_SOL_MS milliseconds.
@@ -389,7 +389,7 @@ function scheduleSolutionCount(){
       .filter(p=>!p.placed)
       .map(p=>({id:p.id, orientations:getOrientations(PIECE_DEFS[p.id].cells)}));
     const{count:n,timedOut}=countSolutions(board,remaining);
-    const display=timedOut||n>=MAX_SOL?`${n}+`:String(n);
+    const display=timedOut||n>=MAX_SOL?'>5':String(n);
     el.textContent=display;
     el.className='stat-value'+(n<=3&&n>0&&!timedOut?' sol-low':'');
   },40);
