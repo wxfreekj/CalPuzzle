@@ -61,6 +61,16 @@
   .solving-msg{display:none;font-size:11px;color:#7A5230;text-align:center;font-style:italic;margin-top:4px}
   .solving-msg.show{display:block}
 
+  /* Stats */
+  .stats-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;text-align:center}
+  .stat-box{background:rgba(255,255,255,.5);border:1px solid #C8AA76;border-radius:6px;padding:8px 4px 6px}
+  .stat-icon{font-size:15px;line-height:1;margin-bottom:3px}
+  .stat-value{font-family:'Playfair Display',serif;font-size:1.1rem;color:#3A2A10;font-weight:600;line-height:1.1;margin-bottom:2px;min-height:1.3em}
+  .stat-label{font-size:9px;color:#9A7040;letter-spacing:.05em;text-transform:uppercase}
+  .stat-value.ticking{color:#2A6B4A}
+  .stat-value.sol-low{color:#B55020}
+  .stat-value.sol-computing{color:#9A7040;font-style:italic;font-size:.85rem}
+
   /* Sidebar */
   .sidebar{display:flex;flex-direction:column;gap:12px;width:220px}
   .panel{background:var(--board-bg);border:2px solid var(--board-border);border-radius:8px;
@@ -105,9 +115,13 @@
     animation:popIn .35s cubic-bezier(.34,1.56,.64,1)}
   @keyframes popIn{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
   .win-box h2{font-family:'Playfair Display',serif;font-size:2rem;color:#3A2A10;margin-bottom:8px}
-  .win-box p{color:#7A5230;font-style:italic;font-size:.95rem;margin-bottom:22px;line-height:1.6}
+  .win-box p{color:#7A5230;font-style:italic;font-size:.95rem;margin-bottom:6px;line-height:1.6}
   .win-date{font-family:'Playfair Display',serif;font-size:1.25rem;color:#3A2A10;
     margin-bottom:6px;font-weight:600}
+  .win-summary{display:flex;gap:12px;justify-content:center;margin:14px 0 20px}
+  .win-stat{background:#F5EFE0;border:1px solid #C8AA76;border-radius:8px;padding:8px 14px;min-width:72px}
+  .win-stat-val{font-family:'Playfair Display',serif;font-size:1.2rem;color:#3A2A10;font-weight:600}
+  .win-stat-lbl{font-size:10px;color:#9A7040;text-transform:uppercase;letter-spacing:.05em}
 </style>
 </head>
 <body>
@@ -116,7 +130,17 @@
   <div class="win-box">
     <h2>&#127881; Puzzle Solved!</h2>
     <div class="win-date" id="winDate"></div>
-    <p>You've uncovered today's date.<br>Brilliant work!</p>
+    <p>You've uncovered today's date. Brilliant!</p>
+    <div class="win-summary">
+      <div class="win-stat">
+        <div class="win-stat-val" id="winTime">—</div>
+        <div class="win-stat-lbl">Time</div>
+      </div>
+      <div class="win-stat">
+        <div class="win-stat-val" id="winMoves">—</div>
+        <div class="win-stat-lbl">Moves</div>
+      </div>
+    </div>
     <button class="btn" style="margin:auto;max-width:160px;padding:10px 20px;font-size:14px;flex:none" onclick="closeWin()">Keep Playing</button>
   </div>
 </div>
@@ -129,10 +153,33 @@
     <div class="board" id="board"></div>
   </div>
   <div class="sidebar">
+
+    <div class="panel">
+      <h3>Today's Progress</h3>
+      <div class="stats-grid">
+        <div class="stat-box">
+          <div class="stat-icon">&#9201;</div>
+          <div class="stat-value" id="statTime">0:00</div>
+          <div class="stat-label">Time</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-icon">&#127919;</div>
+          <div class="stat-value" id="statMoves">0</div>
+          <div class="stat-label">Moves</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-icon">&#128272;</div>
+          <div class="stat-value sol-computing" id="statSolutions">&#8230;</div>
+          <div class="stat-label">Solutions</div>
+        </div>
+      </div>
+    </div>
+
     <div class="panel">
       <h3>Pieces <span id="progressText" style="font-family:Lora,serif;font-weight:400;font-size:.8rem;color:#9A7040"></span></h3>
       <div class="pieces-tray" id="piecesTray"></div>
     </div>
+
     <div class="panel">
       <h3>Controls</h3>
       <div class="selected-info" id="selectedInfo">&#8592; Select a piece to begin</div>
@@ -141,9 +188,10 @@
         <button class="btn" id="btnFlip" onclick="flipSelected()" disabled>&#8660; Flip <span class="kbd">F</span></button>
       </div>
       <button class="btn btn-hint" id="btnHint" onclick="hintSelected()" disabled style="width:100%;margin-bottom:6px;flex:none">&#128161; Hint <span class="kbd">H</span></button>
-      <div class="solving-msg" id="solvingMsg">Thinking…</div>
+      <div class="solving-msg" id="solvingMsg">Thinking&#8230;</div>
       <button class="btn btn-reset" onclick="resetGame()">&#8634; Reset Puzzle</button>
     </div>
+
     <div class="panel">
       <h3>How To Play</h3>
       <ol class="instructions">
@@ -213,14 +261,136 @@ function normalize(cells){
 function rotateCW(cells){return normalize(cells.map(([r,c])=>[c,-r]))}
 function flipH(cells){return normalize(cells.map(([r,c])=>[r,-c]))}
 
+// ─── Game state ───────────────────────────────────────────────────────────────
 let pieces,boardPieces,selectedPieceId=null,hoverCell=null,cellEls=[];
+
+// Stats state
+let moveCount=0;
+let timerStarted=false;
+let timerSeconds=0;
+let timerInterval=null;
+let solComputeTimer=null;
 
 function initState(){
   pieces=PIECE_DEFS.map(p=>({...p,cells:p.cells.map(c=>[...c]),placed:false}));
   boardPieces=Array.from({length:8},()=>Array(7).fill(null));
   selectedPieceId=null; hoverCell=null;
+  // Reset stats
+  moveCount=0;
+  timerStarted=false;
+  timerSeconds=0;
+  if(timerInterval){clearInterval(timerInterval);timerInterval=null;}
+  if(solComputeTimer){clearTimeout(solComputeTimer);solComputeTimer=null;}
+  updateStatDisplay();
+  scheduleSolutionCount();
 }
 
+// ─── Timer ────────────────────────────────────────────────────────────────────
+function startTimerIfNeeded(){
+  if(timerStarted) return;
+  timerStarted=true;
+  timerInterval=setInterval(()=>{
+    timerSeconds++;
+    document.getElementById('statTime').textContent=formatTime(timerSeconds);
+    document.getElementById('statTime').classList.add('ticking');
+  },1000);
+}
+
+function stopTimer(){
+  if(timerInterval){clearInterval(timerInterval);timerInterval=null;}
+}
+
+function formatTime(s){
+  const m=Math.floor(s/60);
+  const sec=s%60;
+  return `${m}:${sec.toString().padStart(2,'0')}`;
+}
+
+// ─── Solution counter ─────────────────────────────────────────────────────────
+function cellsKey(cells){
+  return cells.map(([r,c])=>`${r},${c}`).sort().join('|');
+}
+
+function getOrientations(baseCells){
+  const seen=new Set(), result=[];
+  let cur=baseCells.map(c=>[...c]);
+  for(let f=0;f<2;f++){
+    for(let rot=0;rot<4;rot++){
+      const n=normalize(cur);
+      const k=cellsKey(n);
+      if(!seen.has(k)){seen.add(k);result.push(n)}
+      cur=rotateCW(cur);
+    }
+    cur=flipH(cur);
+  }
+  return result;
+}
+
+const MAX_SOL=500;
+
+// Count all solutions up to MAX_SOL. Mutates board in-place but restores it.
+function countSolutions(board,remaining){
+  let count=0;
+  function solve(remaining){
+    if(count>=MAX_SOL) return;
+    let fr=-1,fc=-1;
+    outer: for(let r=0;r<8;r++)
+      for(let c=0;c<7;c++)
+        if(isActive(r,c)&&!TARGET_SET.has(`${r},${c}`)&&board[r][c]===null){fr=r;fc=c;break outer}
+    if(fr===-1){
+      if(TARGET_CELLS.every(([r,c])=>board[r][c]===null)) count++;
+      return;
+    }
+    for(let i=0;i<remaining.length;i++){
+      if(count>=MAX_SOL) return;
+      const{id,orientations}=remaining[i];
+      const rest=remaining.filter((_,j)=>j!==i);
+      for(const ori of orientations){
+        if(count>=MAX_SOL) return;
+        for(const[dr,dc] of ori){
+          if(count>=MAX_SOL) return;
+          const ar=fr-dr, ac=fc-dc;
+          let ok=true;
+          for(const[r2,c2] of ori){
+            const r=ar+r2,c=ac+c2;
+            if(r<0||r>=8||c<0||c>=7||!isActive(r,c)||board[r][c]!==null){ok=false;break}
+          }
+          if(!ok) continue;
+          for(const[r2,c2] of ori) board[ar+r2][ac+c2]=id;
+          solve(rest);
+          for(const[r2,c2] of ori) board[ar+r2][ac+c2]=null;
+        }
+      }
+    }
+  }
+  solve(remaining);
+  return count;
+}
+
+function scheduleSolutionCount(){
+  const el=document.getElementById('statSolutions');
+  el.textContent='…';
+  el.className='stat-value sol-computing';
+  if(solComputeTimer) clearTimeout(solComputeTimer);
+  solComputeTimer=setTimeout(()=>{
+    const board=boardPieces.map(row=>[...row]);
+    const remaining=pieces
+      .filter(p=>!p.placed)
+      .map(p=>({id:p.id, orientations:getOrientations(PIECE_DEFS[p.id].cells)}));
+    const n=countSolutions(board,remaining);
+    const display=n>=MAX_SOL?`${MAX_SOL}+`:String(n);
+    el.textContent=display;
+    el.className='stat-value'+(n<=3&&n>0?' sol-low':'');
+  },40);
+}
+
+function updateStatDisplay(){
+  document.getElementById('statTime').textContent=formatTime(timerSeconds);
+  document.getElementById('statTime').classList.toggle('ticking',timerStarted);
+  document.getElementById('statMoves').textContent=String(moveCount);
+}
+
+// ─── Board rendering ──────────────────────────────────────────────────────────
 function buildBoard(){
   const board=document.getElementById('board');
   board.innerHTML=''; cellEls=[];
@@ -272,6 +442,7 @@ function refreshBoard(){
   }
 }
 
+// ─── Tray ─────────────────────────────────────────────────────────────────────
 function buildTray(){
   const tray=document.getElementById('piecesTray');
   tray.innerHTML='';
@@ -302,6 +473,7 @@ function buildTray(){
     wrap.appendChild(mg);
     if(!p.placed){
       wrap.addEventListener('click',()=>{
+        startTimerIfNeeded();
         selectedPieceId=(selectedPieceId===i)?null:i;
         buildTray(); updateControls(); refreshBoard();
       });
@@ -311,6 +483,7 @@ function buildTray(){
   document.getElementById('progressText').textContent=`(${placed}/10)`;
 }
 
+// ─── Controls ─────────────────────────────────────────────────────────────────
 function updateControls(){
   const has=selectedPieceId!==null&&!pieces[selectedPieceId].placed;
   document.getElementById('btnRotate').disabled=!has;
@@ -321,49 +494,18 @@ function updateControls(){
   else info.textContent='\u2190 Select a piece to begin';
 }
 
-// ─── Solver ───────────────────────────────────────────────────────────────────
-
-function cellsKey(cells){
-  return cells.map(([r,c])=>`${r},${c}`).sort().join('|');
-}
-
-function getOrientations(baseCells){
-  const seen=new Set(), result=[];
-  let cur=baseCells.map(c=>[...c]);
-  for(let f=0;f<2;f++){
-    for(let rot=0;rot<4;rot++){
-      const n=normalize(cur);
-      const k=cellsKey(n);
-      if(!seen.has(k)){seen.add(k);result.push(n)}
-      cur=rotateCW(cur);
-    }
-    cur=flipH(cur);
-  }
-  return result;
-}
-
-// Backtracking solver. board is a mutable 8x7 array (null = empty).
-// remaining = [{id, orientations}]. Returns [{id,ar,ac,cells},...] or null.
-function solveBoard(board, remaining){
-  // Find first empty non-target active cell
+// ─── Solver (find one solution) ───────────────────────────────────────────────
+function solveBoard(board,remaining){
   let fr=-1,fc=-1;
-  outer: for(let r=0;r<8;r++){
-    for(let c=0;c<7;c++){
-      if(isActive(r,c)&&!TARGET_SET.has(`${r},${c}`)&&board[r][c]===null){
-        fr=r;fc=c;break outer;
-      }
-    }
-  }
-  // All non-target cells filled — check targets are all still empty
-  if(fr===-1){
+  outer: for(let r=0;r<8;r++)
+    for(let c=0;c<7;c++)
+      if(isActive(r,c)&&!TARGET_SET.has(`${r},${c}`)&&board[r][c]===null){fr=r;fc=c;break outer}
+  if(fr===-1)
     return TARGET_CELLS.every(([r,c])=>board[r][c]===null)?[]:null;
-  }
-
   for(let i=0;i<remaining.length;i++){
     const{id,orientations}=remaining[i];
     const rest=remaining.filter((_,j)=>j!==i);
     for(const ori of orientations){
-      // Try every cell in ori as the one that lands on (fr,fc)
       for(const[dr,dc] of ori){
         const ar=fr-dr, ac=fc-dc;
         let ok=true;
@@ -384,48 +526,45 @@ function solveBoard(board, remaining){
 
 function hintSelected(){
   if(selectedPieceId===null||pieces[selectedPieceId].placed) return;
-
   const msg=document.getElementById('solvingMsg');
-  msg.textContent='Thinking…';
+  msg.textContent='Thinking\u2026';
   msg.classList.add('show');
   document.getElementById('btnHint').disabled=true;
-
-  // Defer so the UI can repaint before the solver blocks the thread
   setTimeout(()=>{
     const board=boardPieces.map(row=>[...row]);
     const remaining=pieces
       .filter(p=>!p.placed)
       .map(p=>({id:p.id, orientations:getOrientations(PIECE_DEFS[p.id].cells)}));
-
     const solution=solveBoard(board,remaining);
-
     msg.classList.remove('show');
     document.getElementById('btnHint').disabled=false;
-
     if(!solution){
-      msg.textContent='No solution from here — try removing a piece!';
+      msg.textContent='No solution from here \u2014 try removing a piece!';
       msg.classList.add('show');
       setTimeout(()=>msg.classList.remove('show'),3000);
       return;
     }
-
     const placement=solution.find(s=>s.id===selectedPieceId);
     if(!placement) return;
-
-    // Apply the solved orientation and placement
     pieces[selectedPieceId].cells=placement.cells;
+    recordPlacement();
     placePiece(selectedPieceId,placement.ar,placement.ac);
-
-    // Flash the newly placed cells
     for(const[dr,dc] of placement.cells){
       const cell=cellEls[placement.ar+dr][placement.ac+dc];
       cell.classList.add('hint-flash');
       setTimeout(()=>cell.classList.remove('hint-flash'),1000);
     }
-
     selectedPieceId=null;
     buildTray(); updateControls(); refreshBoard(); checkWin();
+    scheduleSolutionCount();
   },30);
+}
+
+// ─── Placement ────────────────────────────────────────────────────────────────
+function recordPlacement(){
+  startTimerIfNeeded();
+  moveCount++;
+  document.getElementById('statMoves').textContent=String(moveCount);
 }
 
 function isValidPlacement(pid,ar,ac){
@@ -452,14 +591,17 @@ function onCellClick(r,c){
   const occ=boardPieces[r][c];
   if(selectedPieceId!==null&&!pieces[selectedPieceId].placed){
     if(isValidPlacement(selectedPieceId,r,c)){
+      recordPlacement();
       placePiece(selectedPieceId,r,c);
       selectedPieceId=null;
       buildTray(); updateControls(); refreshBoard(); checkWin();
+      scheduleSolutionCount();
     }
   } else if(occ!==null){
     removePiece(occ);
     selectedPieceId=occ;
     buildTray(); updateControls(); refreshBoard();
+    scheduleSolutionCount();
   }
 }
 
@@ -475,31 +617,47 @@ function flipSelected(){
   buildTray(); refreshBoard();
 }
 
+// ─── Win ──────────────────────────────────────────────────────────────────────
 function checkWin(){
   const unc=[];
   for(let r=0;r<8;r++) for(let c=0;c<7;c++) if(isActive(r,c)&&boardPieces[r][c]===null) unc.push(`${r},${c}`);
   if(unc.length!==3) return;
   if(unc.every(k=>TARGET_SET.has(k))){
+    stopTimer();
     const t=new Date();
     document.getElementById('winDate').textContent=t.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+    document.getElementById('winTime').textContent=formatTime(timerSeconds);
+    document.getElementById('winMoves').textContent=String(moveCount);
     document.getElementById('winOverlay').classList.add('show');
   }
 }
 
 function closeWin(){ document.getElementById('winOverlay').classList.remove('show') }
-function resetGame(){ initState(); buildTray(); updateControls(); refreshBoard() }
 
+function resetGame(){
+  stopTimer();
+  initState();
+  buildTray(); updateControls(); refreshBoard();
+}
+
+// ─── Keyboard ─────────────────────────────────────────────────────────────────
 document.addEventListener('keydown',e=>{
   if(e.key==='r'||e.key==='R') rotateSelected();
   if(e.key==='f'||e.key==='F') flipSelected();
   if(e.key==='h'||e.key==='H') hintSelected();
   if(e.key==='Escape'){selectedPieceId=null;buildTray();updateControls();refreshBoard()}
 });
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
 (function(){
   const t=new Date();
   document.getElementById('subtitleEl').textContent=
     `Today is ${t.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'})} — can you expose it?`;
-  initState(); buildBoard(); buildTray(); updateControls(); refreshBoard();
+  initState();
+  buildBoard();
+  buildTray();
+  updateControls();
+  refreshBoard();
 })();
 </script>
 </body>
