@@ -50,6 +50,16 @@
   .cell-piece-overlay{position:absolute;inset:0;border-radius:0;opacity:0;transition:opacity .15s}
   .cell-piece-overlay.visible{opacity:.82}
   .cell-label{position:relative;z-index:2;pointer-events:none;font-size:12px;font-weight:600}
+  .cell.hint-flash .cell-piece-overlay{animation:hintFlash .9s ease-out forwards}
+  @keyframes hintFlash{
+    0%{opacity:1;filter:brightness(2.2)}
+    40%{opacity:1;filter:brightness(1.5)}
+    100%{opacity:.82;filter:brightness(1)}}
+  .btn-hint{background:#2A6B4A;color:#FAF7EF}
+  .btn-hint:hover{background:#3A8A60}
+  .btn-hint:disabled{opacity:.4;cursor:not-allowed;transform:none}
+  .solving-msg{display:none;font-size:11px;color:#7A5230;text-align:center;font-style:italic;margin-top:4px}
+  .solving-msg.show{display:block}
 
   /* Sidebar */
   .sidebar{display:flex;flex-direction:column;gap:12px;width:220px}
@@ -130,6 +140,8 @@
         <button class="btn" id="btnRotate" onclick="rotateSelected()" disabled>&#8635; Rotate <span class="kbd">R</span></button>
         <button class="btn" id="btnFlip" onclick="flipSelected()" disabled>&#8660; Flip <span class="kbd">F</span></button>
       </div>
+      <button class="btn btn-hint" id="btnHint" onclick="hintSelected()" disabled style="width:100%;margin-bottom:6px;flex:none">&#128161; Hint <span class="kbd">H</span></button>
+      <div class="solving-msg" id="solvingMsg">Thinking…</div>
       <button class="btn btn-reset" onclick="resetGame()">&#8634; Reset Puzzle</button>
     </div>
     <div class="panel">
@@ -303,9 +315,117 @@ function updateControls(){
   const has=selectedPieceId!==null&&!pieces[selectedPieceId].placed;
   document.getElementById('btnRotate').disabled=!has;
   document.getElementById('btnFlip').disabled=!has;
+  document.getElementById('btnHint').disabled=!has;
   const info=document.getElementById('selectedInfo');
   if(has) info.textContent=`Piece ${pieces[selectedPieceId].name} selected \u2022 click board to place`;
   else info.textContent='\u2190 Select a piece to begin';
+}
+
+// ─── Solver ───────────────────────────────────────────────────────────────────
+
+function cellsKey(cells){
+  return cells.map(([r,c])=>`${r},${c}`).sort().join('|');
+}
+
+function getOrientations(baseCells){
+  const seen=new Set(), result=[];
+  let cur=baseCells.map(c=>[...c]);
+  for(let f=0;f<2;f++){
+    for(let rot=0;rot<4;rot++){
+      const n=normalize(cur);
+      const k=cellsKey(n);
+      if(!seen.has(k)){seen.add(k);result.push(n)}
+      cur=rotateCW(cur);
+    }
+    cur=flipH(cur);
+  }
+  return result;
+}
+
+// Backtracking solver. board is a mutable 8x7 array (null = empty).
+// remaining = [{id, orientations}]. Returns [{id,ar,ac,cells},...] or null.
+function solveBoard(board, remaining){
+  // Find first empty non-target active cell
+  let fr=-1,fc=-1;
+  outer: for(let r=0;r<8;r++){
+    for(let c=0;c<7;c++){
+      if(isActive(r,c)&&!TARGET_SET.has(`${r},${c}`)&&board[r][c]===null){
+        fr=r;fc=c;break outer;
+      }
+    }
+  }
+  // All non-target cells filled — check targets are all still empty
+  if(fr===-1){
+    return TARGET_CELLS.every(([r,c])=>board[r][c]===null)?[]:null;
+  }
+
+  for(let i=0;i<remaining.length;i++){
+    const{id,orientations}=remaining[i];
+    const rest=remaining.filter((_,j)=>j!==i);
+    for(const ori of orientations){
+      // Try every cell in ori as the one that lands on (fr,fc)
+      for(const[dr,dc] of ori){
+        const ar=fr-dr, ac=fc-dc;
+        let ok=true;
+        for(const[r2,c2] of ori){
+          const r=ar+r2,c=ac+c2;
+          if(r<0||r>=8||c<0||c>=7||!isActive(r,c)||board[r][c]!==null){ok=false;break}
+        }
+        if(!ok) continue;
+        for(const[r2,c2] of ori) board[ar+r2][ac+c2]=id;
+        const sub=solveBoard(board,rest);
+        if(sub!==null) return [{id,ar,ac,cells:ori},...sub];
+        for(const[r2,c2] of ori) board[ar+r2][ac+c2]=null;
+      }
+    }
+  }
+  return null;
+}
+
+function hintSelected(){
+  if(selectedPieceId===null||pieces[selectedPieceId].placed) return;
+
+  const msg=document.getElementById('solvingMsg');
+  msg.textContent='Thinking…';
+  msg.classList.add('show');
+  document.getElementById('btnHint').disabled=true;
+
+  // Defer so the UI can repaint before the solver blocks the thread
+  setTimeout(()=>{
+    const board=boardPieces.map(row=>[...row]);
+    const remaining=pieces
+      .filter(p=>!p.placed)
+      .map(p=>({id:p.id, orientations:getOrientations(PIECE_DEFS[p.id].cells)}));
+
+    const solution=solveBoard(board,remaining);
+
+    msg.classList.remove('show');
+    document.getElementById('btnHint').disabled=false;
+
+    if(!solution){
+      msg.textContent='No solution from here — try removing a piece!';
+      msg.classList.add('show');
+      setTimeout(()=>msg.classList.remove('show'),3000);
+      return;
+    }
+
+    const placement=solution.find(s=>s.id===selectedPieceId);
+    if(!placement) return;
+
+    // Apply the solved orientation and placement
+    pieces[selectedPieceId].cells=placement.cells;
+    placePiece(selectedPieceId,placement.ar,placement.ac);
+
+    // Flash the newly placed cells
+    for(const[dr,dc] of placement.cells){
+      const cell=cellEls[placement.ar+dr][placement.ac+dc];
+      cell.classList.add('hint-flash');
+      setTimeout(()=>cell.classList.remove('hint-flash'),1000);
+    }
+
+    selectedPieceId=null;
+    buildTray(); updateControls(); refreshBoard(); checkWin();
+  },30);
 }
 
 function isValidPlacement(pid,ar,ac){
@@ -372,9 +492,9 @@ function resetGame(){ initState(); buildTray(); updateControls(); refreshBoard()
 document.addEventListener('keydown',e=>{
   if(e.key==='r'||e.key==='R') rotateSelected();
   if(e.key==='f'||e.key==='F') flipSelected();
+  if(e.key==='h'||e.key==='H') hintSelected();
   if(e.key==='Escape'){selectedPieceId=null;buildTray();updateControls();refreshBoard()}
 });
-
 (function(){
   const t=new Date();
   document.getElementById('subtitleEl').textContent=
