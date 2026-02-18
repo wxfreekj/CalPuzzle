@@ -169,7 +169,7 @@
         </div>
         <div class="stat-box">
           <div class="stat-icon">&#128272;</div>
-          <div class="stat-value sol-computing" id="statSolutions">&#8230;</div>
+          <div class="stat-value" id="statSolutions">—</div>
           <div class="stat-label">Solutions</div>
         </div>
       </div>
@@ -282,7 +282,6 @@ function initState(){
   if(timerInterval){clearInterval(timerInterval);timerInterval=null;}
   if(solComputeTimer){clearTimeout(solComputeTimer);solComputeTimer=null;}
   updateStatDisplay();
-  scheduleSolutionCount();
 }
 
 // ─── Timer ────────────────────────────────────────────────────────────────────
@@ -326,13 +325,18 @@ function getOrientations(baseCells){
   return result;
 }
 
-const MAX_SOL=500;
+const MAX_SOL=200;
+const MAX_SOL_MS=400; // hard time cap — never block the browser longer than this
 
-// Count all solutions up to MAX_SOL. Mutates board in-place but restores it.
+// Count solutions up to MAX_SOL, aborting after MAX_SOL_MS milliseconds.
+// Returns {count, timedOut}
 function countSolutions(board,remaining){
   let count=0;
+  let timedOut=false;
+  const deadline=performance.now()+MAX_SOL_MS;
   function solve(remaining){
-    if(count>=MAX_SOL) return;
+    if(count>=MAX_SOL||timedOut) return;
+    if((count&15)===0&&performance.now()>deadline){timedOut=true;return;}
     let fr=-1,fc=-1;
     outer: for(let r=0;r<8;r++)
       for(let c=0;c<7;c++)
@@ -342,13 +346,13 @@ function countSolutions(board,remaining){
       return;
     }
     for(let i=0;i<remaining.length;i++){
-      if(count>=MAX_SOL) return;
+      if(count>=MAX_SOL||timedOut) return;
       const{id,orientations}=remaining[i];
       const rest=remaining.filter((_,j)=>j!==i);
       for(const ori of orientations){
-        if(count>=MAX_SOL) return;
+        if(count>=MAX_SOL||timedOut) return;
         for(const[dr,dc] of ori){
-          if(count>=MAX_SOL) return;
+          if(count>=MAX_SOL||timedOut) return;
           const ar=fr-dr, ac=fc-dc;
           let ok=true;
           for(const[r2,c2] of ori){
@@ -364,11 +368,18 @@ function countSolutions(board,remaining){
     }
   }
   solve(remaining);
-  return count;
+  return{count,timedOut};
 }
 
+// Only run solution counting once at least 1 piece is placed (cheap guard).
 function scheduleSolutionCount(){
+  const placedCount=pieces.filter(p=>p.placed).length;
   const el=document.getElementById('statSolutions');
+  if(placedCount===0){
+    el.textContent='—';
+    el.className='stat-value';
+    return;
+  }
   el.textContent='…';
   el.className='stat-value sol-computing';
   if(solComputeTimer) clearTimeout(solComputeTimer);
@@ -377,10 +388,10 @@ function scheduleSolutionCount(){
     const remaining=pieces
       .filter(p=>!p.placed)
       .map(p=>({id:p.id, orientations:getOrientations(PIECE_DEFS[p.id].cells)}));
-    const n=countSolutions(board,remaining);
-    const display=n>=MAX_SOL?`${MAX_SOL}+`:String(n);
+    const{count:n,timedOut}=countSolutions(board,remaining);
+    const display=timedOut||n>=MAX_SOL?`${n}+`:String(n);
     el.textContent=display;
-    el.className='stat-value'+(n<=3&&n>0?' sol-low':'');
+    el.className='stat-value'+(n<=3&&n>0&&!timedOut?' sol-low':'');
   },40);
 }
 
