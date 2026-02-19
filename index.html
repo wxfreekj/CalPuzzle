@@ -6,10 +6,10 @@
 <title>Calendar Puzzle</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Lora:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg:#F2EDE3; --board-bg:#E6D9C0; --board-border:#7A5C30;
-    --cell-text:#3A2A10; --cell-border:#C8AA76;
-    --selected-ring:#D4601A; --target-color:#D4B017;
+  :root{
+    --bg:#F2EDE3;--board-bg:#E6D9C0;--board-border:#7A5C30;
+    --cell-text:#3A2A10;--cell-border:#C8AA76;
+    --selected-ring:#D4601A;--target-color:#D4B017;
     --cs:60px;
   }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -18,16 +18,15 @@
     background:var(--bg);font-family:'Lora',Georgia,serif;
     min-height:100vh;display:flex;flex-direction:column;align-items:center;
     padding:14px 10px 32px;
-    background-image:
-      radial-gradient(ellipse at 20% 10%,rgba(200,160,80,.08) 0%,transparent 60%),
-      radial-gradient(ellipse at 80% 90%,rgba(160,100,40,.07) 0%,transparent 60%);
+    background-image:radial-gradient(ellipse at 20% 10%,rgba(200,160,80,.08) 0%,transparent 60%),
+                     radial-gradient(ellipse at 80% 90%,rgba(160,100,40,.07) 0%,transparent 60%);
   }
   h1{font-family:'Playfair Display',serif;color:#3A2A10;font-size:clamp(1.3rem,5vw,2.1rem);
-     margin-bottom:2px;letter-spacing:.03em;text-shadow:0 1px 3px rgba(100,60,10,.12);text-align:center}
+    margin-bottom:2px;letter-spacing:.03em;text-shadow:0 1px 3px rgba(100,60,10,.12);text-align:center}
   .subtitle{color:#7A5C30;font-size:clamp(.72rem,.9rem,1rem);margin-bottom:12px;font-style:italic;text-align:center;padding:0 8px}
   .game-area{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap;justify-content:center;width:100%}
 
-  /* Stats strip */
+  /* Stats */
   .stats-strip{display:none;width:100%;gap:6px;margin-bottom:10px}
   .stats-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;text-align:center}
   .stat-box{background:rgba(255,255,255,.5);border:1px solid #C8AA76;border-radius:6px;padding:8px 4px 6px}
@@ -38,12 +37,11 @@
   .stat-value.sol-low{color:#B55020}
 
   /* Board */
-  .board-container{background:var(--board-bg);border:3px solid var(--board-border);
-    border-radius:10px;padding:10px;
+  .board-container{background:var(--board-bg);border:3px solid var(--board-border);border-radius:10px;padding:10px;
     box-shadow:0 8px 28px rgba(60,35,10,.22),inset 0 1px 0 rgba(255,255,255,.3);flex-shrink:0}
   .board{display:grid;grid-template-columns:repeat(7,var(--cs));grid-template-rows:repeat(8,var(--cs));gap:0}
   .cell{width:var(--cs);height:var(--cs);border:1px solid var(--cell-border);
-    background:#ffffff;display:flex;align-items:center;justify-content:center;
+    background:#fff;display:flex;align-items:center;justify-content:center;
     font-size:calc(var(--cs)*.2);font-weight:500;color:var(--cell-text);cursor:pointer;
     transition:background .12s;user-select:none;position:relative;overflow:hidden;touch-action:none}
   .cell.target-cell{box-shadow:inset 0 0 0 2.5px var(--target-color);animation:tp 2.4s ease-in-out infinite}
@@ -61,16 +59,21 @@
   .cell.hint-flash .cell-piece-overlay{animation:hintFlash .9s ease-out forwards}
   @keyframes hintFlash{0%{opacity:1;filter:brightness(2.2)}40%{opacity:1;filter:brightness(1.5)}100%{opacity:.82;filter:brightness(1)}}
 
+  /* Selected-on-board ring: placed but still selected */
+  .cell.sel-placed-ring{box-shadow:inset 0 0 0 3px var(--selected-ring)!important;z-index:3}
+
   /* Drag ghost */
   #dragGhost{
     position:fixed;pointer-events:none;z-index:9999;
     display:none;transform-origin:top left;
-    filter:drop-shadow(0 6px 16px rgba(0,0,0,.35));
-    transition:opacity .1s;
+    filter:drop-shadow(0 6px 18px rgba(0,0,0,.38));
+    transition:filter .12s;
   }
   #dragGhost.visible{display:block}
-  #dragGhost.over-valid{filter:drop-shadow(0 6px 16px rgba(50,160,80,.5))}
-  #dragGhost.over-invalid{filter:drop-shadow(0 6px 16px rgba(180,50,50,.45))}
+  #dragGhost.floating{opacity:.72}   /* resting over board, not being dragged */
+  #dragGhost.dragging{opacity:.88}
+  #dragGhost.over-valid{filter:drop-shadow(0 6px 18px rgba(50,160,80,.55))}
+  #dragGhost.over-invalid{filter:drop-shadow(0 6px 18px rgba(180,50,50,.5))}
   .ghost-grid{display:grid;gap:0}
   .ghost-cell{border-radius:2px}
 
@@ -84,9 +87,10 @@
   .piece-wrapper{display:flex;flex-direction:column;align-items:center;justify-content:center;
     gap:3px;cursor:pointer;padding:6px 4px;border:2px solid transparent;border-radius:6px;
     transition:all .15s;min-height:56px;background:rgba(255,255,255,.35);touch-action:manipulation}
-  .piece-wrapper:hover:not(.placed){background:rgba(139,111,71,.12);border-color:var(--board-border)}
+  .piece-wrapper:hover:not(.placed-away){background:rgba(139,111,71,.12);border-color:var(--board-border)}
   .piece-wrapper.selected{border-color:var(--selected-ring);background:rgba(212,96,26,.1);box-shadow:0 0 0 1px rgba(212,96,26,.3)}
-  .piece-wrapper.placed{opacity:.28;cursor:default;filter:grayscale(.4)}
+  .piece-wrapper.placed-away{opacity:.28;cursor:default;filter:grayscale(.4)} /* placed, not selected */
+  .piece-wrapper.placed-selected{opacity:.7;border-color:var(--selected-ring);background:rgba(212,96,26,.08)} /* placed AND selected */
   .piece-mini{display:grid;gap:0}
   .piece-mini-cell{width:13px;height:13px;border-radius:0;border:none}
 
@@ -102,7 +106,7 @@
   .btn-hint:disabled{opacity:.4;cursor:not-allowed;transform:none}
   .btn-reset{background:transparent;color:#7A5230;border:2px solid #C8AA76;font-size:12px;
     width:100%;padding:7px;margin-top:2px;flex:none;min-height:40px}
-  .btn-reset:hover{background:rgba(100,60,20,.08);color:#5A3810}
+  .btn-reset:hover{background:rgba(100,60,20,.08)}
   .kbd{display:inline-block;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);
     border-radius:3px;padding:0 4px;font-size:10px;font-family:monospace;line-height:1.4}
   .selected-info{font-size:11.5px;color:#5C3A18;text-align:center;font-style:italic;
@@ -174,10 +178,7 @@
 </head>
 <body>
 
-<!-- Drag ghost element -->
-<div id="dragGhost">
-  <div class="ghost-grid" id="ghostGrid"></div>
-</div>
+<div id="dragGhost"><div class="ghost-grid" id="ghostGrid"></div></div>
 
 <div class="win-overlay" id="winOverlay">
   <div class="win-box">
@@ -195,7 +196,6 @@
 <h1>Calendar Puzzle</h1>
 <div class="subtitle" id="subtitleEl">Place all pieces to reveal today's date</div>
 
-<!-- Mobile stats strip -->
 <div class="stats-strip">
   <div class="stats-grid" style="width:100%">
     <div class="stat-box"><div class="stat-icon">&#9201;</div><div class="stat-value" id="statTimeMob">0:00</div><div class="stat-label">Time</div></div>
@@ -205,7 +205,7 @@
 </div>
 
 <div class="game-area">
-  <div class="board-container">
+  <div class="board-container" id="boardContainer">
     <div class="board" id="board"></div>
   </div>
   <div class="sidebar">
@@ -238,14 +238,13 @@
         <li>Select a piece from the tray</li>
         <li>Rotate <b>(R)</b> or flip <b>(F)</b> it</li>
         <li>Click the board to place it</li>
-        <li>Click a placed piece to remove it</li>
+        <li>Rotate/flip after placing to adjust</li>
         <li>Leave the <span style="color:#B8880A;font-weight:600">&#10022; gold-bordered</span> cells exposed!</li>
       </ol>
     </div>
   </div>
 </div>
 
-<!-- Mobile toolbar -->
 <div class="mobile-toolbar" id="mobileToolbar">
   <div class="mobile-selected" id="mobileSelectedInfo">Tap or drag a piece below</div>
   <div class="mobile-btns">
@@ -265,7 +264,6 @@
   <div class="mobile-solving" id="mobileSolvingMsg">Thinking&#8230;</div>
 </div>
 
-<!-- Mobile piece tray -->
 <div class="mobile-tray-wrap">
   <div class="panel">
     <h3>Pieces <span id="progressTextMob" style="font-family:Lora,serif;font-weight:400;font-size:.8rem;color:#9A7040"></span></h3>
@@ -288,6 +286,9 @@ const PIECE_DEFS=[
 ];
 
 // ─── Cell size ────────────────────────────────────────────────────────────────
+function getCellSize(){
+  return parseInt(getComputedStyle(document.documentElement).getPropertyValue('--cs'))||52;
+}
 function setCellSize(){
   const avail=Math.min(window.innerWidth-40,420);
   const cs=Math.floor(avail/7);
@@ -307,13 +308,12 @@ function getCellLabel(r,c){
   if(r===0) return['Jan','Feb','Mar','Apr','May','Jun'][c];
   if(r===1) return['Jul','Aug','Sep','Oct','Nov','Dec'][c];
   if(r>=2&&r<=5) return String((r-2)*7+c+1);
-  if(r===6){if(c<=2) return String(29+c); return['Sun','Mon','Tue','Wed'][c-3];}
+  if(r===6){if(c<=2) return String(29+c);return['Sun','Mon','Tue','Wed'][c-3];}
   if(r===7) return['Thu','Fri','Sat'][c-4];
   return'';
 }
 function computeTargets(){
-  const t=new Date();
-  const mo=t.getMonth(),day=t.getDate(),dow=t.getDay();
+  const t=new Date(),mo=t.getMonth(),day=t.getDate(),dow=t.getDay();
   const mr=mo<6?0:1,mc=mo<6?mo:mo-6;
   let dr,dc;
   if(day<=28){dr=Math.floor((day-1)/7)+2;dc=(day-1)%7}else{dr=6;dc=day-29}
@@ -325,25 +325,28 @@ const TARGET_CELLS=computeTargets();
 const TARGET_SET=new Set(TARGET_CELLS.map(([r,c])=>`${r},${c}`));
 
 function normalize(cells){
-  const minR=Math.min(...cells.map(([r])=>r));
-  const minC=Math.min(...cells.map(([,c])=>c));
+  const minR=Math.min(...cells.map(([r])=>r)),minC=Math.min(...cells.map(([,c])=>c));
   return cells.map(([r,c])=>[r-minR,c-minC]);
 }
 function rotateCW(cells){return normalize(cells.map(([r,c])=>[c,-r]))}
 function flipH(cells){return normalize(cells.map(([r,c])=>[r,-c]))}
 
 // ─── Game state ───────────────────────────────────────────────────────────────
-let pieces,boardPieces,selectedPieceId=null,hoverCell=null,cellEls=[];
+let pieces,boardPieces,cellEls=[];
+let selectedPieceId=null; // stays set after placement until new piece chosen
+let hoverCell=null;
 let moveCount=0,timerStarted=false,timerSeconds=0,timerInterval=null,solComputeTimer=null;
+// track anchor position of placed-selected piece so rotate/flip can re-anchor
+let placedAnchor=null; // {ar, ac} of top-left of currently placed+selected piece
 
 function initState(){
   pieces=PIECE_DEFS.map(p=>({...p,cells:p.cells.map(c=>[...c]),placed:false}));
   boardPieces=Array.from({length:8},()=>Array(7).fill(null));
-  selectedPieceId=null; hoverCell=null;
-  moveCount=0; timerStarted=false; timerSeconds=0;
+  selectedPieceId=null; hoverCell=null; placedAnchor=null;
+  moveCount=0;timerStarted=false;timerSeconds=0;
   if(timerInterval){clearInterval(timerInterval);timerInterval=null;}
   if(solComputeTimer){clearTimeout(solComputeTimer);solComputeTimer=null;}
-  drag.end(); // cancel any active drag
+  ghost.hide();
   updateAllStats();
 }
 
@@ -354,27 +357,25 @@ function startTimerIfNeeded(){
   timerInterval=setInterval(()=>{
     timerSeconds++;
     const s=formatTime(timerSeconds);
-    setStatVal('statTime',s,'ticking'); setStatVal('statTimeMob',s,'ticking');
+    sv('statTime',s,'ticking');sv('statTimeMob',s,'ticking');
   },1000);
 }
 function stopTimer(){if(timerInterval){clearInterval(timerInterval);timerInterval=null;}}
 function formatTime(s){return`${Math.floor(s/60)}:${(s%60).toString().padStart(2,'0')}`;}
-
-function setStatVal(id,text,cls=''){
-  const el=document.getElementById(id); if(!el) return;
-  el.textContent=text; el.className='stat-value'+(cls?' '+cls:'');
+function sv(id,text,cls=''){
+  const el=document.getElementById(id);if(!el) return;
+  el.textContent=text;el.className='stat-value'+(cls?' '+cls:'');
 }
 function updateAllStats(){
   const t=formatTime(timerSeconds);
-  setStatVal('statTime',t,timerStarted?'ticking':''); setStatVal('statTimeMob',t,timerStarted?'ticking':'');
-  setStatVal('statMoves',String(moveCount)); setStatVal('statMovesMob',String(moveCount));
+  sv('statTime',t,timerStarted?'ticking':'');sv('statTimeMob',t,timerStarted?'ticking':'');
+  sv('statMoves',String(moveCount));sv('statMovesMob',String(moveCount));
 }
 
 // ─── Solution counter ─────────────────────────────────────────────────────────
 function cellsKey(cells){return cells.map(([r,c])=>`${r},${c}`).sort().join('|');}
 function getOrientations(baseCells){
-  const seen=new Set(),result=[];
-  let cur=baseCells.map(c=>[...c]);
+  const seen=new Set(),result=[];let cur=baseCells.map(c=>[...c]);
   for(let f=0;f<2;f++){
     for(let rot=0;rot<4;rot++){const n=normalize(cur),k=cellsKey(n);if(!seen.has(k)){seen.add(k);result.push(n)}cur=rotateCW(cur);}
     cur=flipH(cur);
@@ -408,12 +409,12 @@ function countSolutions(board,remaining){
       }
     }
   }
-  solve(remaining); return{count,timedOut};
+  solve(remaining);return{count,timedOut};
 }
 function scheduleSolutionCount(){
-  const placedCount=pieces.filter(p=>p.placed).length;
-  if(placedCount===0){setStatVal('statSolutions','—');setStatVal('statSolsMob','—');return;}
-  setStatVal('statSolutions','…');setStatVal('statSolsMob','…');
+  const placed=pieces.filter(p=>p.placed).length;
+  if(placed===0){sv('statSolutions','—');sv('statSolsMob','—');return;}
+  sv('statSolutions','…');sv('statSolsMob','…');
   if(solComputeTimer) clearTimeout(solComputeTimer);
   solComputeTimer=setTimeout(()=>{
     const board=boardPieces.map(row=>[...row]);
@@ -421,66 +422,233 @@ function scheduleSolutionCount(){
     const{count:n,timedOut}=countSolutions(board,remaining);
     const display=timedOut||n>=MAX_SOL?'>5':String(n);
     const cls=n<=3&&n>0&&!timedOut?'sol-low':'';
-    setStatVal('statSolutions',display,cls); setStatVal('statSolsMob',display,cls);
+    sv('statSolutions',display,cls);sv('statSolsMob',display,cls);
   },40);
 }
 
-// ─── Board ────────────────────────────────────────────────────────────────────
+// ─── Ghost drag system ────────────────────────────────────────────────────────
+// Two modes:
+//   floating  – ghost visible at board center (after tapping tray), not being dragged
+//   dragging  – finger down, ghost following touch
+const ghost={
+  visible:false,
+  dragging:false,
+  lastAr:null,lastAc:null,
+
+  // Show ghost centered on the board (called when piece is selected via tap)
+  showAtBoard(){
+    if(selectedPieceId===null) return;
+    this._buildGrid();
+    const cs=getCellSize();
+    const p=pieces[selectedPieceId];
+    const rows=p.cells.map(([r])=>r),cols=p.cells.map(([,c])=>c);
+    const maxR=Math.max(...rows),maxC=Math.max(...cols);
+    const gw=(maxC+1)*cs,gh=(maxR+1)*cs;
+    const boardEl=document.getElementById('board');
+    const rect=boardEl.getBoundingClientRect();
+    const x=rect.left+(rect.width-gw)/2;
+    const y=rect.top+(rect.height-gh)/2;
+    const el=document.getElementById('dragGhost');
+    el.style.left=x+'px';el.style.top=y+'px';
+    el.className='visible floating';
+    this.visible=true;this.dragging=false;
+    this.lastAr=null;this.lastAc=null;
+  },
+
+  startDrag(clientX,clientY){
+    if(!this.visible||selectedPieceId===null) return;
+    this.dragging=true;
+    this._moveTo(clientX,clientY);
+    document.getElementById('dragGhost').className='visible dragging';
+  },
+
+  move(clientX,clientY){
+    if(!this.dragging) return;
+    this._moveTo(clientX,clientY);
+    const{ar,ac}=this._boardCellAt(clientX,clientY);
+    this.lastAr=ar;this.lastAc=ac;
+    const el=document.getElementById('dragGhost');
+    if(ar!==null){
+      const valid=isValidPlacement(selectedPieceId,ar,ac);
+      el.className='visible dragging '+(valid?'over-valid':'over-invalid');
+      refreshBoard(ar,ac);
+    } else {
+      el.className='visible dragging';
+      refreshBoard();
+    }
+  },
+
+  endDrag(){
+    if(!this.dragging) return;
+    this.dragging=false;
+    const ar=this.lastAr,ac=this.lastAc;
+    if(ar!==null&&selectedPieceId!==null&&!pieces[selectedPieceId].placed&&isValidPlacement(selectedPieceId,ar,ac)){
+      recordPlacement(ar,ac);
+      placePiece(selectedPieceId,ar,ac);
+      // piece stays selected; show floating ghost at board center
+      buildAllTrays();updateControls();refreshBoard();checkWin();scheduleSolutionCount();
+      this.showAtBoard();
+    } else {
+      // invalid drop — return to floating
+      this.showAtBoard();
+      refreshBoard();
+    }
+  },
+
+  // Called when piece is placed anywhere (click or drag) — refresh ghost shape & reposition
+  refresh(){
+    if(!this.visible) return;
+    this._buildGrid();
+    this.showAtBoard();
+  },
+
+  hide(){
+    document.getElementById('dragGhost').className='';
+    this.visible=false;this.dragging=false;
+    this.lastAr=null;this.lastAc=null;
+  },
+
+  _buildGrid(){
+    if(selectedPieceId===null) return;
+    const p=pieces[selectedPieceId];
+    const cs=getCellSize();
+    const rows=p.cells.map(([r])=>r),cols=p.cells.map(([,c])=>c);
+    const maxR=Math.max(...rows),maxC=Math.max(...cols);
+    const cellSet=new Set(p.cells.map(([r,c])=>`${r},${c}`));
+    const grid=document.getElementById('ghostGrid');
+    grid.innerHTML='';
+    grid.style.gridTemplateColumns=`repeat(${maxC+1},${cs}px)`;
+    grid.style.gridTemplateRows=`repeat(${maxR+1},${cs}px)`;
+    for(let r=0;r<=maxR;r++){
+      for(let c=0;c<=maxC;c++){
+        const cell=document.createElement('div');
+        cell.style.width=cs+'px';cell.style.height=cs+'px';
+        if(cellSet.has(`${r},${c}`)){cell.className='ghost-cell';cell.style.background=p.color;cell.style.opacity='0.85';}
+        grid.appendChild(cell);
+      }
+    }
+  },
+
+  _moveTo(clientX,clientY){
+    const cs=getCellSize();
+    const el=document.getElementById('dragGhost');
+    el.style.left=(clientX-cs*0.5)+'px';
+    el.style.top=(clientY-cs*0.5)+'px';
+  },
+
+  _boardCellAt(clientX,clientY){
+    const el=document.getElementById('dragGhost');
+    const prev=el.style.display;el.style.display='none';
+    const target=document.elementFromPoint(clientX,clientY);
+    el.style.display=prev;
+    if(!target) return{ar:null,ac:null};
+    let t=target;
+    while(t&&!t._cellCoords) t=t.parentElement;
+    if(t&&t._cellCoords){const{r,c}=t._cellCoords;return{ar:r,ac:c};}
+    return{ar:null,ac:null};
+  }
+};
+
+// Document-level touch handlers
+document.addEventListener('touchmove',e=>{
+  if(!ghost.dragging) return;
+  e.preventDefault();
+  ghost.move(e.touches[0].clientX,e.touches[0].clientY);
+},{passive:false});
+
+document.addEventListener('touchend',e=>{
+  if(!ghost.dragging) return;
+  e.preventDefault();
+  ghost.endDrag();
+},{passive:false});
+
+document.addEventListener('touchcancel',()=>{
+  if(!ghost.dragging) return;
+  ghost.dragging=false;
+  ghost.showAtBoard();
+  refreshBoard();
+});
+
+// Touching the board area while ghost is floating starts the drag
+document.getElementById('boardContainer').addEventListener('touchstart',e=>{
+  if(ghost.visible&&!ghost.dragging&&selectedPieceId!==null&&!pieces[selectedPieceId].placed){
+    e.preventDefault();
+    ghost.startDrag(e.touches[0].clientX,e.touches[0].clientY);
+  }
+},{passive:false});
+
+// ─── Board rendering ──────────────────────────────────────────────────────────
 function buildBoard(){
-  const board=document.getElementById('board');
-  board.innerHTML=''; cellEls=[];
+  const boardEl=document.getElementById('board');
+  boardEl.innerHTML='';cellEls=[];
   for(let r=0;r<8;r++){
     cellEls[r]=[];
     for(let c=0;c<7;c++){
       const cell=document.createElement('div');
-      cell.className='cell'; cellEls[r][c]=cell;
+      cell.className='cell';cellEls[r][c]=cell;
       if(!isActive(r,c)){
         cell.classList.add('inactive');
       } else {
+        cell._cellCoords={r,c};
         if(TARGET_SET.has(`${r},${c}`)) cell.classList.add('target-cell');
-        const ov=document.createElement('div'); ov.className='cell-piece-overlay'; cell.appendChild(ov);
-        const lb=document.createElement('span'); lb.className='cell-label'; lb.textContent=getCellLabel(r,c); cell.appendChild(lb);
+        const ov=document.createElement('div');ov.className='cell-piece-overlay';cell.appendChild(ov);
+        const lb=document.createElement('span');lb.className='cell-label';lb.textContent=getCellLabel(r,c);cell.appendChild(lb);
         cell.addEventListener('mouseenter',()=>{hoverCell={r,c};refreshBoard()});
         cell.addEventListener('mouseleave',()=>{hoverCell=null;refreshBoard()});
         cell.addEventListener('click',()=>onCellClick(r,c));
-        // touch: pick up placed piece by tapping
-        cell.addEventListener('touchstart',e=>{
-          if(boardPieces[r][c]!==null) e.preventDefault(); // prevent scroll when picking up
-        },{passive:false});
+        cell.addEventListener('touchstart',e=>onCellTouchStart(r,c,e),{passive:false});
       }
-      board.appendChild(cell);
+      boardEl.appendChild(cell);
     }
   }
 }
 
 function refreshBoard(previewAr,previewAc){
-  // previewAr/Ac: board-anchor for drag ghost preview (optional)
+  const pid=selectedPieceId;
+  const placedCells=pid!==null&&pieces[pid].placed?
+    new Set(pieces[pid].cells.map(([dr,dc])=>{
+      // find where this piece is on the board
+      for(let r=0;r<8;r++) for(let c=0;c<7;c++) if(boardPieces[r][c]===pid) return`${r},${c}`;
+      return'';
+    })):new Set();
+
+  // Actually, build set of board coords occupied by selected-placed piece
+  const selPlacedCoords=new Set();
+  if(pid!==null&&pieces[pid].placed){
+    for(let r=0;r<8;r++) for(let c=0;c<7;c++) if(boardPieces[r][c]===pid) selPlacedCoords.add(`${r},${c}`);
+  }
+
   for(let r=0;r<8;r++){
     for(let c=0;c<7;c++){
       if(!isActive(r,c)) continue;
       const cell=cellEls[r][c];
       const ov=cell.querySelector('.cell-piece-overlay');
-      const pid=boardPieces[r][c];
-      if(pid!==null){ov.style.background=pieces[pid].color;ov.classList.add('visible');cell.classList.add('covered')}
-      else{ov.classList.remove('visible');cell.classList.remove('covered')}
-      cell.classList.remove('preview-valid','preview-invalid');
+      const occupant=boardPieces[r][c];
+      if(occupant!==null){
+        ov.style.background=pieces[occupant].color;ov.classList.add('visible');cell.classList.add('covered');
+      } else {
+        ov.classList.remove('visible');cell.classList.remove('covered');
+      }
+      cell.classList.remove('preview-valid','preview-invalid','sel-placed-ring');
+      // Highlight cells of placed+selected piece
+      if(selPlacedCoords.has(`${r},${c}`)) cell.classList.add('sel-placed-ring');
     }
   }
-  // Mouse hover preview (non-drag)
-  if(!drag.active&&selectedPieceId!==null&&hoverCell!==null&&!pieces[selectedPieceId].placed){
+  // Mouse hover preview (no active drag)
+  if(!ghost.dragging&&pid!==null&&!pieces[pid].placed&&hoverCell!==null){
     const{r:ar,c:ac}=hoverCell;
-    const valid=isValidPlacement(selectedPieceId,ar,ac);
+    const valid=isValidPlacement(pid,ar,ac);
     const cls=valid?'preview-valid':'preview-invalid';
-    for(const[dr,dc] of pieces[selectedPieceId].cells){
+    for(const[dr,dc] of pieces[pid].cells){
       const r=ar+dr,c=ac+dc;
       if(r>=0&&r<8&&c>=0&&c<7&&isActive(r,c)) cellEls[r][c].classList.add(cls);
     }
   }
   // Drag ghost board preview
-  if(drag.active&&previewAr!==undefined&&selectedPieceId!==null){
-    const valid=isValidPlacement(selectedPieceId,previewAr,previewAc);
+  if(ghost.dragging&&previewAr!==undefined&&pid!==null&&!pieces[pid].placed){
+    const valid=isValidPlacement(pid,previewAr,previewAc);
     const cls=valid?'preview-valid':'preview-invalid';
-    for(const[dr,dc] of pieces[selectedPieceId].cells){
+    for(const[dr,dc] of pieces[pid].cells){
       const r=previewAr+dr,c=previewAc+dc;
       if(r>=0&&r<8&&c>=0&&c<7&&isActive(r,c)) cellEls[r][c].classList.add(cls);
     }
@@ -489,16 +657,19 @@ function refreshBoard(previewAr,previewAc){
 
 // ─── Tray builder ─────────────────────────────────────────────────────────────
 function buildOneTray(containerId,progressId,isMobile){
-  const tray=document.getElementById(containerId); if(!tray) return;
+  const tray=document.getElementById(containerId);if(!tray) return;
   tray.innerHTML='';
-  let placed=0;
+  let placedCount=0;
   for(let i=0;i<pieces.length;i++){
     const p=pieces[i];
-    if(p.placed) placed++;
+    if(p.placed) placedCount++;
     const wrap=document.createElement('div');
     wrap.className='piece-wrapper';
-    if(p.placed) wrap.classList.add('placed');
-    if(selectedPieceId===i) wrap.classList.add('selected');
+    const isSelected=selectedPieceId===i;
+    if(p.placed&&isSelected) wrap.classList.add('placed-selected');
+    else if(p.placed) wrap.classList.add('placed-away');
+    else if(isSelected) wrap.classList.add('selected');
+
     const rows=p.cells.map(([r])=>r),cols2=p.cells.map(([,c])=>c);
     const maxR=Math.max(...rows),maxC=Math.max(...cols2);
     const cs=new Set(p.cells.map(([r,c])=>`${r},${c}`));
@@ -510,188 +681,147 @@ function buildOneTray(containerId,progressId,isMobile){
     for(let r=0;r<=maxR;r++){
       for(let c=0;c<=maxC;c++){
         const mc=document.createElement('div');
-        if(cs.has(`${r},${c}`)){mc.className='piece-mini-cell';mc.style.background=p.color}
+        if(cs.has(`${r},${c}`)){mc.className='piece-mini-cell';mc.style.background=p.color;}
         else{mc.style.width='13px';mc.style.height='13px';}
         mg.appendChild(mc);
       }
     }
     wrap.appendChild(mg);
-    if(!p.placed){
-      // Click to select (desktop & mobile tap)
-      wrap.addEventListener('click',e=>{
-        if(drag.justDragged){drag.justDragged=false;return;} // suppress click after drag
-        startTimerIfNeeded();
-        const prev=selectedPieceId;
-        selectedPieceId=(selectedPieceId===i)?null:i;
-        buildAllTrays(); updateControls(); refreshBoard();
-      });
-      // Touch-start: begin drag immediately on mobile
-      if(isMobile){
-        wrap.addEventListener('touchstart',e=>{
-          e.preventDefault();
-          startTimerIfNeeded();
-          selectedPieceId=i;
-          buildAllTrays(); updateControls(); refreshBoard();
-          const t=e.touches[0];
-          drag.start(i,t.clientX,t.clientY);
-        },{passive:false});
+
+    // Click: select (or deselect if already selected and unplaced)
+    wrap.addEventListener('click',e=>{
+      if(ghost.dragging) return;
+      startTimerIfNeeded();
+      if(selectedPieceId===i&&!pieces[i].placed){
+        // deselect
+        selectedPieceId=null;placedAnchor=null;ghost.hide();
+      } else {
+        // If piece was placed and currently selected, clicking it again deselects
+        if(selectedPieceId===i&&pieces[i].placed){selectedPieceId=null;placedAnchor=null;ghost.hide();}
+        else{selectPiece(i);}
       }
+      buildAllTrays();updateControls();refreshBoard();
+    });
+
+    // Mobile: touchstart on tray piece → select + show ghost at board center
+    if(isMobile){
+      wrap.addEventListener('touchstart',e=>{
+        e.preventDefault();
+        startTimerIfNeeded();
+        selectPiece(i);
+        buildAllTrays();updateControls();refreshBoard();
+        // show ghost centered on board; user then touches board to drag
+        ghost.showAtBoard();
+      },{passive:false});
     }
+
     tray.appendChild(wrap);
   }
-  const prog=document.getElementById(progressId); if(prog) prog.textContent=`(${placed}/10)`;
+  const prog=document.getElementById(progressId);if(prog) prog.textContent=`(${placedCount}/10)`;
 }
 function buildAllTrays(){
   buildOneTray('piecesTray','progressText',false);
   buildOneTray('piecesTrayMob','progressTextMob',true);
 }
 
-// ─── Controls ─────────────────────────────────────────────────────────────────
-function updateControls(){
-  const has=selectedPieceId!==null&&!pieces[selectedPieceId].placed;
-  ['btnRotate','btnFlip','btnHint'].forEach(id=>{const el=document.getElementById(id);if(el) el.disabled=!has;});
-  const info=document.getElementById('selectedInfo');
-  if(info) info.textContent=has?`Piece ${pieces[selectedPieceId].name} selected \u2022 click board to place`:'\u2190 Select a piece to begin';
-  ['mbRotate','mbFlip','mbHint'].forEach(id=>{const el=document.getElementById(id);if(el) el.disabled=!has;});
-  const minfo=document.getElementById('mobileSelectedInfo');
-  if(minfo) minfo.textContent=has?`Piece ${pieces[selectedPieceId].name} — drag or tap board to place`:'Tap or drag a piece below';
+// Select a piece — if it's placed, pull it off the board first
+function selectPiece(i){
+  if(selectedPieceId===i) return; // already selected, nothing to do
+  if(pieces[i].placed){
+    removePiece(i);
+    scheduleSolutionCount();
+  }
+  selectedPieceId=i;
+  placedAnchor=null;
 }
 
-// ─── Touch drag system ────────────────────────────────────────────────────────
-const drag={
-  active:false,
-  pid:null,
-  justDragged:false,
-  _touchId:null,
-  _lastAr:null,
-  _lastAc:null,
-
-  start(pid,clientX,clientY){
-    this.active=true;
-    this.pid=pid;
-    this.justDragged=false;
-    this._lastAr=null; this._lastAc=null;
-    this._updateGhost();
-    this._moveGhost(clientX,clientY);
-    document.getElementById('dragGhost').classList.add('visible');
-  },
-
-  move(clientX,clientY){
-    if(!this.active) return;
-    this._moveGhost(clientX,clientY);
-    // find board cell under finger
-    const {ar,ac}=this._boardCellAt(clientX,clientY);
-    this._lastAr=ar; this._lastAc=ac;
-    const ghost=document.getElementById('dragGhost');
-    if(ar!==null){
-      const valid=isValidPlacement(this.pid,ar,ac);
-      ghost.className='visible '+(valid?'over-valid':'over-invalid');
-      refreshBoard(ar,ac);
-    } else {
-      ghost.className='visible';
-      refreshBoard();
-    }
-  },
-
-  end(){
-    if(!this.active) return;
-    const ar=this._lastAr, ac=this._lastAc;
-    document.getElementById('dragGhost').className=''; // hide
-    this.active=false;
-
-    if(ar!==null&&selectedPieceId!==null&&!pieces[selectedPieceId].placed){
-      if(isValidPlacement(selectedPieceId,ar,ac)){
-        recordPlacement();
-        placePiece(selectedPieceId,ar,ac);
-        this.justDragged=true;
-        selectedPieceId=null;
-        buildAllTrays(); updateControls(); refreshBoard(); checkWin();
-        scheduleSolutionCount();
-        return;
-      }
-    }
-    // invalid drop — keep piece selected, refresh
-    refreshBoard();
-  },
-
-  cancel(){
-    document.getElementById('dragGhost').className='';
-    this.active=false;
-    refreshBoard();
-  },
-
-  _updateGhost(){
-    const pid=this.pid;
-    if(pid===null||!pieces[pid]) return;
-    const p=pieces[pid];
-    const cs=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--cs'))||52;
-    const rows=p.cells.map(([r])=>r),cols=p.cells.map(([,c])=>c);
-    const maxR=Math.max(...rows),maxC=Math.max(...cols);
-    const cellSet=new Set(p.cells.map(([r,c])=>`${r},${c}`));
-    const grid=document.getElementById('ghostGrid');
-    grid.innerHTML='';
-    grid.style.gridTemplateColumns=`repeat(${maxC+1},${cs}px)`;
-    grid.style.gridTemplateRows=`repeat(${maxR+1},${cs}px)`;
-    for(let r=0;r<=maxR;r++){
-      for(let c=0;c<=maxC;c++){
-        const cell=document.createElement('div');
-        cell.style.width=cs+'px'; cell.style.height=cs+'px';
-        if(cellSet.has(`${r},${c}`)){
-          cell.className='ghost-cell';
-          cell.style.background=p.color;
-          cell.style.opacity='0.85';
-        }
-        grid.appendChild(cell);
-      }
-    }
-  },
-
-  _moveGhost(clientX,clientY){
-    const pid=this.pid; if(pid===null||!pieces[pid]) return;
-    const p=pieces[pid];
-    const cs=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--cs'))||52;
-    // Center the ghost on the first cell of the piece
-    const ghost=document.getElementById('dragGhost');
-    ghost.style.left=(clientX - cs*0.5)+'px';
-    ghost.style.top=(clientY - cs*0.5)+'px';
-  },
-
-  _boardCellAt(clientX,clientY){
-    // Use elementFromPoint to find what's under the touch
-    // Temporarily hide ghost so it doesn't intercept
-    const ghost=document.getElementById('dragGhost');
-    const prevDisplay=ghost.style.display;
-    ghost.style.display='none';
-    const el=document.elementFromPoint(clientX,clientY);
-    ghost.style.display=prevDisplay;
-
-    if(!el) return{ar:null,ac:null};
-    // Walk up to find a cell
-    let target=el;
-    while(target&&!target._cellCoords) target=target.parentElement;
-    if(target&&target._cellCoords){
-      const{r,c}=target._cellCoords;
-      return{ar:r,ac:c};
-    }
-    return{ar:null,ac:null};
+// ─── Controls ─────────────────────────────────────────────────────────────────
+function updateControls(){
+  const has=selectedPieceId!==null; // enabled whether placed or not
+  ['btnRotate','btnFlip','btnHint'].forEach(id=>{const el=document.getElementById(id);if(el) el.disabled=!has;});
+  const info=document.getElementById('selectedInfo');
+  if(info){
+    if(!has) info.textContent='\u2190 Select a piece to begin';
+    else if(pieces[selectedPieceId].placed) info.textContent=`Piece ${pieces[selectedPieceId].name} placed \u2022 rotate/flip to adjust`;
+    else info.textContent=`Piece ${pieces[selectedPieceId].name} selected \u2022 click board to place`;
   }
-};
+  ['mbRotate','mbFlip','mbHint'].forEach(id=>{const el=document.getElementById(id);if(el) el.disabled=!has;});
+  const minfo=document.getElementById('mobileSelectedInfo');
+  if(minfo){
+    if(!has) minfo.textContent='Tap or drag a piece below';
+    else if(pieces[selectedPieceId].placed) minfo.textContent=`Piece ${pieces[selectedPieceId].name} placed \u2022 rotate/flip to adjust`;
+    else minfo.textContent=`Piece ${pieces[selectedPieceId].name} \u2014 drag or tap board to place`;
+  }
+}
 
-// Touch handlers on the board (for dragging placed pieces and dropping)
-document.addEventListener('touchmove',e=>{
-  if(!drag.active) return;
-  e.preventDefault();
-  const t=e.touches[0];
-  drag.move(t.clientX,t.clientY);
-},{passive:false});
+// ─── Rotate / Flip ────────────────────────────────────────────────────────────
+// Compute the board centroid of a placed piece
+function placedCentroid(pid){
+  const boardCells=[];
+  for(let r=0;r<8;r++) for(let c=0;c<7;c++) if(boardPieces[r][c]===pid) boardCells.push([r,c]);
+  if(!boardCells.length) return null;
+  const avgR=boardCells.reduce((s,[r])=>s+r,0)/boardCells.length;
+  const avgC=boardCells.reduce((s,[,c])=>s+c,0)/boardCells.length;
+  return{r:avgR,c:avgC};
+}
 
-document.addEventListener('touchend',e=>{
-  if(!drag.active) return;
-  e.preventDefault();
-  drag.end();
-},{passive:false});
+// Find the anchor that places the new cells' centroid nearest to (targetR, targetC).
+// Searches a radius of a few cells to find the first valid placement.
+function bestAnchorNearCentroid(pid,newCells,targetR,targetC){
+  const avgDr=newCells.reduce((s,[r])=>s+r,0)/newCells.length;
+  const avgDc=newCells.reduce((s,[,c])=>s+c,0)/newCells.length;
+  const baseAr=Math.round(targetR-avgDr);
+  const baseAc=Math.round(targetC-avgDc);
+  // Search spiral outward from ideal position
+  for(let radius=0;radius<=3;radius++){
+    for(let dr=-radius;dr<=radius;dr++){
+      for(let dc=-radius;dc<=radius;dc++){
+        if(Math.abs(dr)!==radius&&Math.abs(dc)!==radius) continue; // only perimeter
+        const ar=baseAr+dr,ac=baseAc+dc;
+        if(isValidPlacement(pid,ar,ac)) return{ar,ac};
+      }
+    }
+  }
+  return null;
+}
 
-document.addEventListener('touchcancel',()=>{drag.cancel();});
+function applyTransformToPlaced(pid,transformFn){
+  const centroid=placedCentroid(pid);
+  removePiece(pid);
+  pieces[pid].cells=transformFn(pieces[pid].cells);
+  const anchor=centroid?bestAnchorNearCentroid(pid,pieces[pid].cells,centroid.r,centroid.c):null;
+  if(anchor){
+    placePiece(pid,anchor.ar,anchor.ac);
+    placedAnchor=anchor;
+    scheduleSolutionCount();
+    buildAllTrays();updateControls();refreshBoard();ghost.refresh();
+  } else {
+    // No valid spot — leave unplaced, show floating ghost
+    scheduleSolutionCount();
+    buildAllTrays();updateControls();refreshBoard();ghost.showAtBoard();
+  }
+}
+
+function rotateSelected(){
+  if(selectedPieceId===null) return;
+  const pid=selectedPieceId;
+  if(pieces[pid].placed){
+    applyTransformToPlaced(pid,rotateCW);
+  } else {
+    pieces[pid].cells=rotateCW(pieces[pid].cells);
+    ghost.refresh();buildAllTrays();refreshBoard();
+  }
+}
+function flipSelected(){
+  if(selectedPieceId===null) return;
+  const pid=selectedPieceId;
+  if(pieces[pid].placed){
+    applyTransformToPlaced(pid,flipH);
+  } else {
+    pieces[pid].cells=flipH(pieces[pid].cells);
+    ghost.refresh();buildAllTrays();refreshBoard();
+  }
+}
 
 // ─── Solver ───────────────────────────────────────────────────────────────────
 function solveBoard(board,remaining){
@@ -702,7 +832,7 @@ function solveBoard(board,remaining){
     const{id,orientations}=remaining[i],rest=remaining.filter((_,j)=>j!==i);
     for(const ori of orientations){
       for(const[dr,dc] of ori){
-        const ar=fr-dr,ac=fc-dc; let ok=true;
+        const ar=fr-dr,ac=fc-dc;let ok=true;
         for(const[r2,c2] of ori){const r=ar+r2,c=ac+c2;if(r<0||r>=8||c<0||c>=7||!isActive(r,c)||board[r][c]!==null){ok=false;break}}
         if(!ok) continue;
         for(const[r2,c2] of ori) board[ar+r2][ac+c2]=id;
@@ -714,14 +844,13 @@ function solveBoard(board,remaining){
   }
   return null;
 }
-function showSolvingMsg(text){
-  ['solvingMsg','mobileSolvingMsg'].forEach(id=>{const el=document.getElementById(id);if(el){el.textContent=text;el.classList.add('show');}});
-}
-function hideSolvingMsg(){
-  ['solvingMsg','mobileSolvingMsg'].forEach(id=>{const el=document.getElementById(id);if(el) el.classList.remove('show');});
-}
+function showSolvingMsg(t){['solvingMsg','mobileSolvingMsg'].forEach(id=>{const el=document.getElementById(id);if(el){el.textContent=t;el.classList.add('show');}});}
+function hideSolvingMsg(){['solvingMsg','mobileSolvingMsg'].forEach(id=>{const el=document.getElementById(id);if(el) el.classList.remove('show');});}
 function hintSelected(){
-  if(selectedPieceId===null||pieces[selectedPieceId].placed) return;
+  if(selectedPieceId===null) return;
+  const pid=selectedPieceId;
+  // If piece is placed, un-place it first for solving
+  if(pieces[pid].placed){removePiece(pid);scheduleSolutionCount();}
   showSolvingMsg('Thinking\u2026');
   ['btnHint','mbHint'].forEach(id=>{const el=document.getElementById(id);if(el) el.disabled=true;});
   setTimeout(()=>{
@@ -729,26 +858,27 @@ function hintSelected(){
     const remaining=pieces.filter(p=>!p.placed).map(p=>({id:p.id,orientations:getOrientations(PIECE_DEFS[p.id].cells)}));
     const solution=solveBoard(board,remaining);
     hideSolvingMsg();
-    if(!solution){showSolvingMsg('No solution here \u2014 try removing a piece!');setTimeout(hideSolvingMsg,3000);updateControls();return;}
-    const placement=solution.find(s=>s.id===selectedPieceId);
-    if(!placement){updateControls();return;}
-    pieces[selectedPieceId].cells=placement.cells;
-    recordPlacement();
-    placePiece(selectedPieceId,placement.ar,placement.ac);
+    if(!solution){showSolvingMsg('No solution here \u2014 try removing a piece!');setTimeout(hideSolvingMsg,3000);updateControls();buildAllTrays();refreshBoard();ghost.showAtBoard();return;}
+    const placement=solution.find(s=>s.id===pid);
+    if(!placement){updateControls();buildAllTrays();refreshBoard();ghost.showAtBoard();return;}
+    pieces[pid].cells=placement.cells;
+    recordPlacement(placement.ar,placement.ac);
+    placePiece(pid,placement.ar,placement.ac);
     for(const[dr,dc] of placement.cells){
       const cell=cellEls[placement.ar+dr][placement.ac+dc];
-      cell.classList.add('hint-flash');
-      setTimeout(()=>cell.classList.remove('hint-flash'),1000);
+      cell.classList.add('hint-flash');setTimeout(()=>cell.classList.remove('hint-flash'),1000);
     }
-    selectedPieceId=null;
-    buildAllTrays(); updateControls(); refreshBoard(); checkWin(); scheduleSolutionCount();
+    // Keep selected after hint
+    buildAllTrays();updateControls();refreshBoard();checkWin();scheduleSolutionCount();
+    ghost.refresh();
   },30);
 }
 
 // ─── Placement ────────────────────────────────────────────────────────────────
-function recordPlacement(){
-  startTimerIfNeeded(); moveCount++;
-  setStatVal('statMoves',String(moveCount)); setStatVal('statMovesMob',String(moveCount));
+function recordPlacement(ar,ac){
+  startTimerIfNeeded();moveCount++;
+  sv('statMoves',String(moveCount));sv('statMovesMob',String(moveCount));
+  placedAnchor={ar,ac};
 }
 function isValidPlacement(pid,ar,ac){
   for(const[dr,dc] of pieces[pid].cells){
@@ -764,56 +894,56 @@ function placePiece(pid,ar,ac){
 function removePiece(pid){
   for(let r=0;r<8;r++) for(let c=0;c<7;c++) if(boardPieces[r][c]===pid) boardPieces[r][c]=null;
   pieces[pid].placed=false;
+  placedAnchor=null;
 }
+
+// Click on a board cell
 function onCellClick(r,c){
-  if(drag.active) return; // ignore clicks during drag
+  if(ghost.dragging) return;
   const occ=boardPieces[r][c];
   if(selectedPieceId!==null&&!pieces[selectedPieceId].placed){
     if(isValidPlacement(selectedPieceId,r,c)){
-      recordPlacement();
+      recordPlacement(r,c);
       placePiece(selectedPieceId,r,c);
-      selectedPieceId=null;
-      buildAllTrays(); updateControls(); refreshBoard(); checkWin(); scheduleSolutionCount();
+      // Stay selected
+      buildAllTrays();updateControls();refreshBoard();checkWin();scheduleSolutionCount();
+      ghost.refresh(); // reposition floating ghost for desktop hover-after-place clarity
     }
   } else if(occ!==null){
+    // Pick up piece from board
+    const prev=selectedPieceId;
+    if(prev!==null&&prev!==occ&&pieces[prev].placed){removePiece(prev);}
     removePiece(occ);
-    selectedPieceId=occ;
-    buildAllTrays(); updateControls(); refreshBoard(); scheduleSolutionCount();
+    selectedPieceId=occ;placedAnchor=null;
+    buildAllTrays();updateControls();refreshBoard();scheduleSolutionCount();
+  } else if(selectedPieceId!==null&&pieces[selectedPieceId].placed){
+    // Click empty cell while piece is placed+selected — deselect
+    selectedPieceId=null;placedAnchor=null;ghost.hide();
+    buildAllTrays();updateControls();refreshBoard();
   }
 }
 
-// Touch on board cells — pick up placed pieces by touching them
+// Touch on a board cell (pick up placed piece)
 function onCellTouchStart(r,c,e){
   const occ=boardPieces[r][c];
   if(occ!==null){
     e.preventDefault();
-    removePiece(occ);
-    selectedPieceId=occ;
     startTimerIfNeeded();
-    buildAllTrays(); updateControls(); refreshBoard(); scheduleSolutionCount();
-    const t=e.touches[0];
-    drag.start(occ,t.clientX,t.clientY);
-  } else if(selectedPieceId!==null&&!pieces[selectedPieceId].placed){
-    // Start dragging selected piece onto board
+    if(selectedPieceId!==null&&selectedPieceId!==occ&&pieces[selectedPieceId]?.placed) removePiece(selectedPieceId);
+    removePiece(occ);
+    selectedPieceId=occ;placedAnchor=null;
+    buildAllTrays();updateControls();refreshBoard();scheduleSolutionCount();
+    ghost._buildGrid();
+    ghost.visible=true;ghost.dragging=true;
+    ghost.lastAr=r;ghost.lastAc=c;
+    const el=document.getElementById('dragGhost');
+    el.className='visible dragging';
+    ghost._moveTo(e.touches[0].clientX,e.touches[0].clientY);
+  } else if(ghost.visible&&!ghost.dragging&&selectedPieceId!==null&&!pieces[selectedPieceId].placed){
+    // Touch empty cell while ghost floating — start drag
     e.preventDefault();
-    const t=e.touches[0];
-    drag.start(selectedPieceId,t.clientX,t.clientY);
-    // Set initial position so move fires correctly
-    drag._lastAr=r; drag._lastAc=c;
+    ghost.startDrag(e.touches[0].clientX,e.touches[0].clientY);
   }
-}
-
-function rotateSelected(){
-  if(selectedPieceId===null||pieces[selectedPieceId].placed) return;
-  pieces[selectedPieceId].cells=rotateCW(pieces[selectedPieceId].cells);
-  if(drag.active) drag._updateGhost();
-  buildAllTrays(); refreshBoard();
-}
-function flipSelected(){
-  if(selectedPieceId===null||pieces[selectedPieceId].placed) return;
-  pieces[selectedPieceId].cells=flipH(pieces[selectedPieceId].cells);
-  if(drag.active) drag._updateGhost();
-  buildAllTrays(); refreshBoard();
 }
 
 // ─── Win ──────────────────────────────────────────────────────────────────────
@@ -822,7 +952,7 @@ function checkWin(){
   for(let r=0;r<8;r++) for(let c=0;c<7;c++) if(isActive(r,c)&&boardPieces[r][c]===null) unc.push(`${r},${c}`);
   if(unc.length!==3) return;
   if(unc.every(k=>TARGET_SET.has(k))){
-    stopTimer();
+    stopTimer();ghost.hide();
     const t=new Date();
     document.getElementById('winDate').textContent=t.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
     document.getElementById('winTime').textContent=formatTime(timerSeconds);
@@ -838,7 +968,7 @@ document.addEventListener('keydown',e=>{
   if(e.key==='r'||e.key==='R') rotateSelected();
   if(e.key==='f'||e.key==='F') flipSelected();
   if(e.key==='h'||e.key==='H') hintSelected();
-  if(e.key==='Escape'){selectedPieceId=null;drag.cancel();buildAllTrays();updateControls();refreshBoard();}
+  if(e.key==='Escape'){selectedPieceId=null;placedAnchor=null;ghost.hide();buildAllTrays();updateControls();refreshBoard();}
 });
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
@@ -846,26 +976,8 @@ document.addEventListener('keydown',e=>{
   const t=new Date();
   document.getElementById('subtitleEl').textContent=
     `Today is ${t.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'})} — can you expose it?`;
-  initState(); buildBoard(); buildAllTrays(); updateControls(); refreshBoard();
+  initState();buildBoard();buildAllTrays();updateControls();refreshBoard();
 })();
-
-// ─── Patch buildBoard to store coords + touch on cells ───────────────────────
-// (done after buildBoard so we can wrap it cleanly)
-const _origBuildBoard=buildBoard;
-buildBoard=function(){
-  _origBuildBoard();
-  for(let r=0;r<8;r++){
-    for(let c=0;c<7;c++){
-      if(!isActive(r,c)) continue;
-      const cell=cellEls[r][c];
-      cell._cellCoords={r,c};
-      cell.addEventListener('touchstart',e=>onCellTouchStart(r,c,e),{passive:false});
-    }
-  }
-};
-// Re-run to apply touch listeners
-buildBoard();
-buildAllTrays(); updateControls(); refreshBoard();
 </script>
 </body>
 </html>
