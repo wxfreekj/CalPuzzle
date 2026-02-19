@@ -434,8 +434,12 @@ const ghost={
   visible:false,
   dragging:false,
   lastAr:null,lastAc:null,
+  // Where within the ghost element the finger landed (so ghost doesn't jump on pickup)
+  offsetX:0,offsetY:0,
+  // Original anchor to restore on failed drop
+  _savedAr:null,_savedAc:null,
 
-  // Show ghost centered on the board (called when piece is selected via tap)
+  // Show ghost centered on the board (called when piece is selected via tap from tray)
   showAtBoard(){
     if(selectedPieceId===null) return;
     this._buildGrid();
@@ -453,6 +457,27 @@ const ghost={
     el.className='visible floating';
     this.visible=true;this.dragging=false;
     this.lastAr=null;this.lastAc=null;
+    // Default offset: finger relative to top-left of ghost = half a cell
+    this.offsetX=cs*0.5;this.offsetY=cs*0.5;
+  },
+
+  // Place ghost exactly over a board anchor cell, ready to drag.
+  // touchX/touchY = finger screen coords at the moment of pickup.
+  showAtCell(ar,ac,touchX,touchY){
+    if(selectedPieceId===null) return;
+    this._buildGrid();
+    // Find the top-left corner of the anchor cell in screen coords
+    const cellEl=cellEls[ar][ac];
+    const rect=cellEl.getBoundingClientRect();
+    const el=document.getElementById('dragGhost');
+    el.style.left=rect.left+'px';
+    el.style.top=rect.top+'px';
+    el.className='visible dragging';
+    this.visible=true;this.dragging=true;
+    this.lastAr=ar;this.lastAc=ac;
+    // Offset = where finger landed relative to ghost top-left
+    this.offsetX=touchX-rect.left;
+    this.offsetY=touchY-rect.top;
   },
 
   startDrag(clientX,clientY){
@@ -485,27 +510,29 @@ const ghost={
     if(ar!==null&&selectedPieceId!==null&&!pieces[selectedPieceId].placed&&isValidPlacement(selectedPieceId,ar,ac)){
       recordPlacement(ar,ac);
       placePiece(selectedPieceId,ar,ac);
-      // piece placed — hide ghost (orange ring on board shows selection)
       this.hide();
       buildAllTrays();updateControls();refreshBoard();checkWin();scheduleSolutionCount();
     } else {
-      // invalid drop — return to floating
-      this.showAtBoard();
-      refreshBoard();
+      // Failed drop — restore to original position if we have one
+      if(this._savedAr!==null&&selectedPieceId!==null&&!pieces[selectedPieceId].placed){
+        placePiece(selectedPieceId,this._savedAr,this._savedAc);
+        placedAnchor={ar:this._savedAr,ac:this._savedAc};
+        this._savedAr=null;this._savedAc=null;
+        buildAllTrays();updateControls();refreshBoard();
+        this.hide();
+        scheduleSolutionCount();
+      } else {
+        this.showAtBoard();
+        refreshBoard();
+      }
     }
-  },
-
-  // Called when piece is placed anywhere (click or drag) — refresh ghost shape & reposition
-  refresh(){
-    if(!this.visible) return;
-    this._buildGrid();
-    this.showAtBoard();
   },
 
   hide(){
     document.getElementById('dragGhost').className='';
     this.visible=false;this.dragging=false;
     this.lastAr=null;this.lastAc=null;
+    this._savedAr=null;this._savedAc=null;
   },
 
   _buildGrid(){
@@ -529,11 +556,11 @@ const ghost={
     }
   },
 
+  // Move ghost so the finger is at (offsetX, offsetY) within it
   _moveTo(clientX,clientY){
-    const cs=getCellSize();
     const el=document.getElementById('dragGhost');
-    el.style.left=(clientX-cs*0.5)+'px';
-    el.style.top=(clientY-cs*0.5)+'px';
+    el.style.left=(clientX-this.offsetX)+'px';
+    el.style.top=(clientY-this.offsetY)+'px';
   },
 
   _boardCellAt(clientX,clientY){
@@ -565,8 +592,16 @@ document.addEventListener('touchend',e=>{
 document.addEventListener('touchcancel',()=>{
   if(!ghost.dragging) return;
   ghost.dragging=false;
-  ghost.showAtBoard();
-  refreshBoard();
+  // Restore to original board position if available
+  if(ghost._savedAr!==null&&selectedPieceId!==null&&!pieces[selectedPieceId].placed){
+    placePiece(selectedPieceId,ghost._savedAr,ghost._savedAc);
+    placedAnchor={ar:ghost._savedAr,ac:ghost._savedAc};
+    ghost.hide();
+    buildAllTrays();updateControls();refreshBoard();scheduleSolutionCount();
+  } else {
+    ghost.showAtBoard();
+    refreshBoard();
+  }
 });
 
 // Touching the board area while ghost is floating starts the drag
@@ -930,15 +965,16 @@ function onCellTouchStart(r,c,e){
     e.preventDefault();
     startTimerIfNeeded();
     if(selectedPieceId!==null&&selectedPieceId!==occ&&pieces[selectedPieceId]?.placed) removePiece(selectedPieceId);
+    // Find the top-left anchor of this piece on the board (min row/col among its cells)
+    let minR=8,minC=7;
+    for(let pr=0;pr<8;pr++) for(let pc=0;pc<7;pc++) if(boardPieces[pr][pc]===occ){if(pr<minR||(pr===minR&&pc<minC)){minR=pr;minC=pc;}}
+    // Save anchor so a failed drop can restore the piece in place
+    ghost._savedAr=minR;ghost._savedAc=minC;
     removePiece(occ);
     selectedPieceId=occ;placedAnchor=null;
     buildAllTrays();updateControls();refreshBoard();scheduleSolutionCount();
-    ghost._buildGrid();
-    ghost.visible=true;ghost.dragging=true;
-    ghost.lastAr=r;ghost.lastAc=c;
-    const el=document.getElementById('dragGhost');
-    el.className='visible dragging';
-    ghost._moveTo(e.touches[0].clientX,e.touches[0].clientY);
+    // Position ghost exactly over where the piece was, finger offset preserved
+    ghost.showAtCell(minR,minC,e.touches[0].clientX,e.touches[0].clientY);
   } else if(ghost.visible&&!ghost.dragging&&selectedPieceId!==null&&!pieces[selectedPieceId].placed){
     // Touch empty cell while ghost floating — start drag
     e.preventDefault();
