@@ -485,9 +485,9 @@ const ghost={
     if(ar!==null&&selectedPieceId!==null&&!pieces[selectedPieceId].placed&&isValidPlacement(selectedPieceId,ar,ac)){
       recordPlacement(ar,ac);
       placePiece(selectedPieceId,ar,ac);
-      // piece stays selected; show floating ghost at board center
+      // piece placed — hide ghost (orange ring on board shows selection)
+      this.hide();
       buildAllTrays();updateControls();refreshBoard();checkWin();scheduleSolutionCount();
-      this.showAtBoard();
     } else {
       // invalid drop — return to floating
       this.showAtBoard();
@@ -794,7 +794,7 @@ function applyTransformToPlaced(pid,transformFn){
     placePiece(pid,anchor.ar,anchor.ac);
     placedAnchor=anchor;
     scheduleSolutionCount();
-    buildAllTrays();updateControls();refreshBoard();ghost.refresh();
+    buildAllTrays();updateControls();refreshBoard();ghost.hide();
   } else {
     // No valid spot — leave unplaced, show floating ghost
     scheduleSolutionCount();
@@ -870,7 +870,7 @@ function hintSelected(){
     }
     // Keep selected after hint
     buildAllTrays();updateControls();refreshBoard();checkWin();scheduleSolutionCount();
-    ghost.refresh();
+    ghost.hide();
   },30);
 }
 
@@ -907,7 +907,7 @@ function onCellClick(r,c){
       placePiece(selectedPieceId,r,c);
       // Stay selected
       buildAllTrays();updateControls();refreshBoard();checkWin();scheduleSolutionCount();
-      ghost.refresh(); // reposition floating ghost for desktop hover-after-place clarity
+      ghost.hide(); // piece is now placed; ring on board shows it's still selected
     }
   } else if(occ!==null){
     // Pick up piece from board
