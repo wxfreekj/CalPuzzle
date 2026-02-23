@@ -67,8 +67,7 @@
     background:rgba(255,255,255,.5);border:1.5px solid #C8AA76;border-radius:6px;
     padding:8px 14px;font-family:'Lora',serif;font-size:13px;color:#5C3A18;
     cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:5px;
-    min-height:44px; /* iOS minimum touch target */
-    touch-action:manipulation;
+    min-height:44px;touch-action:manipulation;
   }
   .date-btn:hover{background:rgba(139,111,71,.12);border-color:var(--board-border)}
   .date-btn:active{transform:scale(.97);background:rgba(139,111,71,.2)}
@@ -79,8 +78,7 @@
     font-family:'Playfair Display',serif;font-size:14px;font-weight:600;color:#3A2A10;
     background:rgba(255,255,255,.6);border:1.5px solid #C8AA76;border-radius:6px;
     padding:8px 12px;text-align:center;cursor:pointer;min-width:160px;
-    min-height:44px; /* iOS minimum touch target */
-    touch-action:manipulation;
+    min-height:44px;touch-action:manipulation;
   }
   .date-input:focus{outline:none;border-color:var(--selected-ring)}
   .date-input::-webkit-calendar-picker-indicator{
@@ -105,7 +103,7 @@
   .board-container{
     background:var(--board-bg);border:3px solid var(--board-border);border-radius:10px;padding:10px;
     box-shadow:0 8px 28px rgba(60,35,10,.22),inset 0 1px 0 rgba(255,255,255,.3);flex-shrink:0;
-    touch-action:none; /* Critical for mobile drag */
+    touch-action:none;
   }
   .board{
     display:grid;grid-template-columns:repeat(7,var(--cs));grid-template-rows:repeat(8,var(--cs));gap:0;
@@ -142,12 +140,12 @@
     position:fixed;pointer-events:none;z-index:9999;
     display:none;transform-origin:top left;
     filter:drop-shadow(0 6px 18px rgba(0,0,0,.38));
-    transition:filter .12s;
-    will-change:transform,left,top; /* GPU acceleration */
+    will-change:transform,left,top;
   }
   #dragGhost.visible{display:block}
   #dragGhost.floating{opacity:.72}
   #dragGhost.dragging{opacity:.88}
+  #dragGhost.snapped{opacity:.92}
   #dragGhost.over-valid{filter:drop-shadow(0 6px 18px rgba(50,160,80,.55))}
   #dragGhost.over-invalid{filter:drop-shadow(0 6px 18px rgba(180,50,50,.5))}
   .ghost-grid{display:grid;gap:0}
@@ -207,7 +205,7 @@
     padding:0;height:52px;font-family:'Lora',serif;font-size:11px;cursor:pointer;
     display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
     touch-action:manipulation;transition:background .1s,transform .08s;
-    min-width:48px; /* Android minimum touch target */
+    min-width:48px;
   }
   .mobile-btn:active{background:#4A3010;transform:scale(.95)}
   .mobile-btn:disabled{opacity:.35;cursor:not-allowed;transform:none}
@@ -226,7 +224,7 @@
   .mobile-pieces-tray{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
   .mobile-pieces-tray .piece-wrapper{
     min-height:52px;padding:6px 2px;
-    touch-action:none; /* Enable custom touch handling */
+    touch-action:none;
   }
 
   /* Win overlay */
@@ -363,7 +361,7 @@
 </div>
 
 <div class="mobile-toolbar" id="mobileToolbar">
-  <div class="mobile-selected" id="mobileSelectedInfo">Tap a piece below, then drag to board</div>
+  <div class="mobile-selected" id="mobileSelectedInfo">Tap a piece below, then touch board to place</div>
   <div class="mobile-btns">
     <button class="mobile-btn" id="mbRotate" onclick="rotateSelected()" disabled>
       <span class="mobile-btn-icon">&#8635;</span><span class="mobile-btn-label">Rotate</span>
@@ -411,12 +409,14 @@ let currentTargetDate = new Date();
 
 // ─── Cell size ────────────────────────────────────────────────────────────────
 function getCellSize(){
-  const computed = getComputedStyle(document.documentElement).getPropertyValue('--cs');
-  // Handle min() and calc() by measuring actual cell
   if(cellEls && cellEls[2] && cellEls[2][0]){
     return cellEls[2][0].offsetWidth || 52;
   }
-  return parseInt(computed) || 52;
+  return 52;
+}
+
+function getBoardRect(){
+  return document.getElementById('board').getBoundingClientRect();
 }
 
 function setCellSize(){
@@ -606,138 +606,32 @@ function scheduleSolutionCount(){
   },40);
 }
 
-// ─── Ghost drag system ────────────────────────────────────────────────────────
+// ─── Ghost drag system (overhauled for mobile) ───────────────────────────────
+// Key concepts:
+//   grabR, grabC = which cell within the piece shape the "grab point" is at
+//   When dragging over the board, the ghost SNAPS to the grid so you see
+//   exactly where the piece will land.
+//   Anchor = (boardCellR - grabR, boardCellC - grabC) for placement.
 const ghost={
   visible:false,
   dragging:false,
-  lastAr:null,lastAc:null,
-  offsetX:0,offsetY:0,
-  _savedAr:null,_savedAc:null,
-  _startX:0,_startY:0,
-  _hasMoved:false,
+  grabR:0, grabC:0,        // grab point within piece (piece-local coords)
+  lastAr:null, lastAc:null, // last computed ANCHOR for placement
+  offsetX:0, offsetY:0,     // pixel offset from touch to ghost top-left
+  _savedAr:null, _savedAc:null, // for restoring picked-up pieces on cancel
 
-  refresh(){
-    if(!this.visible||selectedPieceId===null) return;
-    this._buildGrid();
-    const cs=getCellSize();
-    const p=pieces[selectedPieceId];
-    const rows=p.cells.map(([r])=>r),cols=p.cells.map(([,c])=>c);
-    const maxR=Math.max(...rows),maxC=Math.max(...cols);
-    const gw=(maxC+1)*cs,gh=(maxR+1)*cs;
-    const boardEl=document.getElementById('board');
-    const rect=boardEl.getBoundingClientRect();
-    const x=rect.left+(rect.width-gw)/2;
-    const y=rect.top+(rect.height-gh)/2;
-    const el=document.getElementById('dragGhost');
-    el.style.left=x+'px';el.style.top=y+'px';
-    this.offsetX=cs*0.5;this.offsetY=cs*0.5;
-  },
-
-  showAtBoard(){
-    if(selectedPieceId===null) return;
-    this._buildGrid();
-    const cs=getCellSize();
-    const p=pieces[selectedPieceId];
-    const rows=p.cells.map(([r])=>r),cols=p.cells.map(([,c])=>c);
-    const maxR=Math.max(...rows),maxC=Math.max(...cols);
-    const gw=(maxC+1)*cs,gh=(maxR+1)*cs;
-    const boardEl=document.getElementById('board');
-    const rect=boardEl.getBoundingClientRect();
-    const x=rect.left+(rect.width-gw)/2;
-    const y=rect.top+(rect.height-gh)/2;
-    const el=document.getElementById('dragGhost');
-    el.style.left=x+'px';el.style.top=y+'px';
-    el.className='visible floating';
-    this.visible=true;this.dragging=false;
-    this.lastAr=null;this.lastAc=null;
-    this.offsetX=cs*0.5;this.offsetY=cs*0.5;
-  },
-
-  showAtCell(ar,ac,touchX,touchY){
-    if(selectedPieceId===null) return;
-    this._buildGrid();
-    const cellEl=cellEls[ar][ac];
-    const rect=cellEl.getBoundingClientRect();
-    const el=document.getElementById('dragGhost');
-    el.style.left=rect.left+'px';
-    el.style.top=rect.top+'px';
-    el.className='visible dragging';
-    this.visible=true;this.dragging=true;
-    this.lastAr=ar;this.lastAc=ac;
-    this.offsetX=touchX-rect.left;
-    this.offsetY=touchY-rect.top;
-    this._startX=touchX;
-    this._startY=touchY;
-    this._hasMoved=false;
-    document.body.classList.add('dragging');
-  },
-
-  startDrag(clientX,clientY){
-    if(!this.visible||selectedPieceId===null) return;
-    this.dragging=true;
-    this._startX=clientX;
-    this._startY=clientY;
-    this._hasMoved=false;
-    this._moveTo(clientX,clientY);
-    document.getElementById('dragGhost').className='visible dragging';
-    document.body.classList.add('dragging');
-  },
-
-  move(clientX,clientY){
-    if(!this.dragging) return;
-    
-    const dx = Math.abs(clientX - this._startX);
-    const dy = Math.abs(clientY - this._startY);
-    if(dx > 5 || dy > 5) this._hasMoved = true;
-    
-    this._moveTo(clientX,clientY);
-    const{ar,ac}=this._boardCellAt(clientX,clientY);
-    this.lastAr=ar;this.lastAc=ac;
-    const el=document.getElementById('dragGhost');
-    if(ar!==null){
-      const valid=isValidPlacement(selectedPieceId,ar,ac);
-      el.className='visible dragging '+(valid?'over-valid':'over-invalid');
-      refreshBoard(ar,ac);
-    } else {
-      el.className='visible dragging';
-      refreshBoard();
+  // Find the top-left occupied cell of the current piece (row-first, then col)
+  getGrabCell(){
+    if(selectedPieceId===null) return[0,0];
+    const cells=pieces[selectedPieceId].cells;
+    let bestR=Infinity, bestC=Infinity;
+    for(const[r,c] of cells){
+      if(r<bestR||(r===bestR&&c<bestC)){ bestR=r; bestC=c; }
     }
+    return[bestR, bestC];
   },
 
-  endDrag(){
-    if(!this.dragging) return;
-    this.dragging=false;
-    document.body.classList.remove('dragging');
-    const ar=this.lastAr,ac=this.lastAc;
-    
-    if(ar!==null&&selectedPieceId!==null&&!pieces[selectedPieceId].placed&&isValidPlacement(selectedPieceId,ar,ac)){
-      recordPlacement(ar,ac);
-      placePiece(selectedPieceId,ar,ac);
-      this.hide();
-      buildAllTrays();updateControls();refreshBoard();checkWin();scheduleSolutionCount();
-    } else {
-      if(this._savedAr!==null&&selectedPieceId!==null&&!pieces[selectedPieceId].placed){
-        placePiece(selectedPieceId,this._savedAr,this._savedAc);
-        placedAnchor={ar:this._savedAr,ac:this._savedAc};
-        this._savedAr=null;this._savedAc=null;
-        buildAllTrays();updateControls();refreshBoard();
-        this.hide();
-        scheduleSolutionCount();
-      } else {
-        this.showAtBoard();
-        refreshBoard();
-      }
-    }
-  },
-
-  hide(){
-    document.getElementById('dragGhost').className='';
-    this.visible=false;this.dragging=false;
-    this.lastAr=null;this.lastAc=null;
-    this._savedAr=null;this._savedAc=null;
-    document.body.classList.remove('dragging');
-  },
-
+  // Build the visual ghost grid from the current piece shape
   _buildGrid(){
     if(selectedPieceId===null) return;
     const p=pieces[selectedPieceId];
@@ -753,29 +647,181 @@ const ghost={
       for(let c=0;c<=maxC;c++){
         const cell=document.createElement('div');
         cell.style.width=cs+'px';cell.style.height=cs+'px';
-        if(cellSet.has(`${r},${c}`)){cell.className='ghost-cell';cell.style.background=p.color;cell.style.opacity='0.85';}
+        if(cellSet.has(`${r},${c}`)){
+          cell.className='ghost-cell';
+          cell.style.background=p.color;
+          cell.style.opacity='0.85';
+        }
         grid.appendChild(cell);
       }
     }
   },
 
-  _moveTo(clientX,clientY){
+  // Refresh ghost grid in place (after rotate/flip while floating)
+  refresh(){
+    if(!this.visible||selectedPieceId===null) return;
+    this._buildGrid();
+    const[gr,gc]=this.getGrabCell();
+    this.grabR=gr; this.grabC=gc;
+    const cs=getCellSize();
+    this.offsetX=(gc+0.5)*cs;
+    this.offsetY=(gr+0.5)*cs;
+    // Re-center on board
+    this._centerOnBoard();
+  },
+
+  // Show ghost centered on the board (floating, not dragging)
+  showAtBoard(){
+    if(selectedPieceId===null) return;
+    this._buildGrid();
+    const[gr,gc]=this.getGrabCell();
+    this.grabR=gr; this.grabC=gc;
+    const cs=getCellSize();
+    this.offsetX=(gc+0.5)*cs;
+    this.offsetY=(gr+0.5)*cs;
+    this._centerOnBoard();
+    const el=document.getElementById('dragGhost');
+    el.className='visible floating';
+    this.visible=true; this.dragging=false;
+    this.lastAr=null; this.lastAc=null;
+  },
+
+  _centerOnBoard(){
+    const cs=getCellSize();
+    const p=pieces[selectedPieceId];
+    const rows=p.cells.map(([r])=>r),cols=p.cells.map(([,c])=>c);
+    const maxR=Math.max(...rows),maxC=Math.max(...cols);
+    const gw=(maxC+1)*cs, gh=(maxR+1)*cs;
+    const rect=getBoardRect();
+    const x=rect.left+(rect.width-gw)/2;
+    const y=rect.top+(rect.height-gh)/2;
+    const el=document.getElementById('dragGhost');
+    el.style.left=x+'px'; el.style.top=y+'px';
+  },
+
+  // Start dragging from a touch/click on the board
+  startDrag(clientX,clientY){
+    if(!this.visible||selectedPieceId===null) return;
+    this.dragging=true;
+    const[gr,gc]=this.getGrabCell();
+    this.grabR=gr; this.grabC=gc;
+    const cs=getCellSize();
+    this.offsetX=(gc+0.5)*cs;
+    this.offsetY=(gr+0.5)*cs;
+    // Position immediately
+    this._positionForTouch(clientX,clientY);
+    document.getElementById('dragGhost').className='visible dragging';
+    document.body.classList.add('dragging');
+  },
+
+  // Start dragging a piece picked up from the board (grab at specific piece-cell)
+  startDragFromBoard(anchorR,anchorC,touchedR,touchedC,clientX,clientY){
+    if(selectedPieceId===null) return;
+    this._buildGrid();
+    // The grab point is where they touched relative to the piece anchor
+    this.grabR=touchedR-anchorR;
+    this.grabC=touchedC-anchorC;
+    const cs=getCellSize();
+    this.offsetX=(this.grabC+0.5)*cs;
+    this.offsetY=(this.grabR+0.5)*cs;
+    this._savedAr=anchorR;
+    this._savedAc=anchorC;
+    // Position ghost snapped to where piece was
+    const rect=getBoardRect();
+    const el=document.getElementById('dragGhost');
+    el.style.left=(rect.left+anchorC*cs)+'px';
+    el.style.top=(rect.top+anchorR*cs)+'px';
+    el.className='visible dragging';
+    this.visible=true; this.dragging=true;
+    this.lastAr=anchorR; this.lastAc=anchorC;
+    document.body.classList.add('dragging');
+  },
+
+  // Process drag movement — SNAPS to grid when over the board
+  move(clientX,clientY){
+    if(!this.dragging) return;
+    // Find which board cell the finger is over
+    const raw=this._rawBoardCellAt(clientX,clientY);
+    if(raw.r!==null){
+      // Compute placement anchor from grab offset
+      const ar=raw.r-this.grabR;
+      const ac=raw.c-this.grabC;
+      this.lastAr=ar; this.lastAc=ac;
+      // SNAP ghost to exact grid position
+      const cs=getCellSize();
+      const rect=getBoardRect();
+      const el=document.getElementById('dragGhost');
+      el.style.left=(rect.left+ac*cs)+'px';
+      el.style.top=(rect.top+ar*cs)+'px';
+      const valid=isValidPlacement(selectedPieceId,ar,ac);
+      el.className='visible snapped '+(valid?'over-valid':'over-invalid');
+      refreshBoard(ar,ac);
+    } else {
+      // Not over board — free-follow the finger
+      this.lastAr=null; this.lastAc=null;
+      const el=document.getElementById('dragGhost');
+      el.style.left=(clientX-this.offsetX)+'px';
+      el.style.top=(clientY-this.offsetY)+'px';
+      el.className='visible dragging';
+      refreshBoard();
+    }
+  },
+
+  // Attempt placement or restore on drag end
+  endDrag(){
+    if(!this.dragging) return;
+    this.dragging=false;
+    document.body.classList.remove('dragging');
+    const ar=this.lastAr, ac=this.lastAc;
+
+    if(ar!==null&&selectedPieceId!==null&&!pieces[selectedPieceId].placed&&isValidPlacement(selectedPieceId,ar,ac)){
+      recordPlacement(ar,ac);
+      placePiece(selectedPieceId,ar,ac);
+      this.hide();
+      buildAllTrays();updateControls();refreshBoard();checkWin();scheduleSolutionCount();
+    } else {
+      // Failed drop — restore to saved position if picking up, else float
+      if(this._savedAr!==null&&selectedPieceId!==null&&!pieces[selectedPieceId].placed){
+        placePiece(selectedPieceId,this._savedAr,this._savedAc);
+        placedAnchor={ar:this._savedAr,ac:this._savedAc};
+        this._savedAr=null; this._savedAc=null;
+        buildAllTrays();updateControls();refreshBoard();
+        this.hide();
+        scheduleSolutionCount();
+      } else {
+        this.showAtBoard();
+        refreshBoard();
+      }
+    }
+  },
+
+  // Position ghost for a touch point (free-form, before snapping)
+  _positionForTouch(clientX,clientY){
     const el=document.getElementById('dragGhost');
     el.style.left=(clientX-this.offsetX)+'px';
     el.style.top=(clientY-this.offsetY)+'px';
   },
 
-  _boardCellAt(clientX,clientY){
+  // Find the RAW board cell under a screen coordinate (hides ghost temporarily)
+  _rawBoardCellAt(clientX,clientY){
     const el=document.getElementById('dragGhost');
-    const prevVis=el.style.visibility;
+    const prev=el.style.visibility;
     el.style.visibility='hidden';
     const target=document.elementFromPoint(clientX,clientY);
-    el.style.visibility=prevVis;
-    if(!target) return{ar:null,ac:null};
+    el.style.visibility=prev;
+    if(!target) return{r:null,c:null};
     let t=target;
     while(t&&!t._cellCoords) t=t.parentElement;
-    if(t&&t._cellCoords){const{r,c}=t._cellCoords;return{ar:r,ac:c};}
-    return{ar:null,ac:null};
+    if(t&&t._cellCoords) return{r:t._cellCoords.r,c:t._cellCoords.c};
+    return{r:null,c:null};
+  },
+
+  hide(){
+    document.getElementById('dragGhost').className='';
+    this.visible=false; this.dragging=false;
+    this.lastAr=null; this.lastAc=null;
+    this._savedAr=null; this._savedAc=null;
+    document.body.classList.remove('dragging');
   }
 };
 
@@ -815,7 +861,7 @@ document.addEventListener('touchcancel',e=>{
   }
 },{passive:false});
 
-// Board container touch handler
+// Board container touch: start drag when ghost is floating (not yet dragging)
 document.getElementById('boardContainer').addEventListener('touchstart',e=>{
   if(ghost.visible&&!ghost.dragging&&selectedPieceId!==null&&!pieces[selectedPieceId].placed){
     e.preventDefault();
@@ -878,6 +924,7 @@ function refreshBoard(previewAr,previewAc){
     }
   }
   
+  // Desktop hover preview (non-drag)
   if(!ghost.dragging&&pid!==null&&!pieces[pid].placed&&hoverCell!==null){
     const{r:ar,c:ac}=hoverCell;
     const valid=isValidPlacement(pid,ar,ac);
@@ -888,7 +935,8 @@ function refreshBoard(previewAr,previewAc){
     }
   }
   
-  if(ghost.dragging&&previewAr!==undefined&&pid!==null&&!pieces[pid].placed){
+  // Drag preview (uses anchor coordinates, already adjusted for grab offset)
+  if(ghost.dragging&&previewAr!==undefined&&previewAr!==null&&pid!==null&&!pieces[pid].placed){
     const valid=isValidPlacement(pid,previewAr,previewAc);
     const cls=valid?'preview-valid':'preview-invalid';
     for(const[dr,dc] of pieces[pid].cells){
@@ -931,6 +979,7 @@ function buildOneTray(containerId,progressId,isMobile){
     }
     wrap.appendChild(mg);
 
+    // Desktop click handler
     wrap.addEventListener('click',e=>{
       if(ghost.dragging) return;
       startTimerIfNeeded();
@@ -943,33 +992,15 @@ function buildOneTray(containerId,progressId,isMobile){
       buildAllTrays();updateControls();refreshBoard();
     });
 
+    // Mobile: tap piece → select it and show ghost centered on board
+    // The user then touches the board to start dragging.
     if(isMobile){
       wrap.addEventListener('touchstart',e=>{
         e.preventDefault();
         startTimerIfNeeded();
         selectPiece(i);
         buildAllTrays();updateControls();refreshBoard();
-        
-        activeTouchId = e.touches[0].identifier;
-        ghost._buildGrid();
-        const cs = getCellSize();
-        const el = document.getElementById('dragGhost');
-        
-        const touchX = e.touches[0].clientX;
-        const touchY = e.touches[0].clientY;
-        
-        ghost.offsetX = cs * 0.5;
-        ghost.offsetY = cs * 0.5;
-        ghost._startX = touchX;
-        ghost._startY = touchY;
-        ghost._hasMoved = false;
-        
-        el.style.left = (touchX - ghost.offsetX) + 'px';
-        el.style.top = (touchY - ghost.offsetY) + 'px';
-        el.className = 'visible dragging';
-        ghost.visible = true;
-        ghost.dragging = true;
-        document.body.classList.add('dragging');
+        ghost.showAtBoard();
       },{passive:false});
     }
 
@@ -1006,9 +1037,9 @@ function updateControls(){
   ['mbRotate','mbFlip','mbHint'].forEach(id=>{const el=document.getElementById(id);if(el) el.disabled=!has;});
   const minfo=document.getElementById('mobileSelectedInfo');
   if(minfo){
-    if(!has) minfo.textContent='Tap a piece below, then drag to board';
+    if(!has) minfo.textContent='Tap a piece below, then touch board to place';
     else if(pieces[selectedPieceId].placed) minfo.textContent=`Piece ${pieces[selectedPieceId].name} placed \u2022 rotate/flip to adjust`;
-    else minfo.textContent=`Drag piece ${pieces[selectedPieceId].name} to board`;
+    else minfo.textContent=`Touch board to drag piece ${pieces[selectedPieceId].name}`;
   }
 }
 
@@ -1170,21 +1201,28 @@ function onCellClick(r,c){
   }
 }
 
+// Mobile: touch a board cell — either pick up a placed piece or start drag
 function onCellTouchStart(r,c,e){
   const occ=boardPieces[r][c];
   if(occ!==null){
+    // Pick up a placed piece — start drag immediately with grab at touched cell
     e.preventDefault();
     startTimerIfNeeded();
     if(selectedPieceId!==null&&selectedPieceId!==occ&&pieces[selectedPieceId]?.placed) removePiece(selectedPieceId);
-    let minR=8,minC=7;
-    for(let pr=0;pr<8;pr++) for(let pc=0;pc<7;pc++) if(boardPieces[pr][pc]===occ){if(pr<minR||(pr===minR&&pc<minC)){minR=pr;minC=pc;}}
-    ghost._savedAr=minR;ghost._savedAc=minC;
+    // Find the piece's anchor (top-left of occupied cells on board)
+    let anchorR=8,anchorC=7;
+    for(let pr=0;pr<8;pr++) for(let pc=0;pc<7;pc++){
+      if(boardPieces[pr][pc]===occ){
+        if(pr<anchorR||(pr===anchorR&&pc<anchorC)){anchorR=pr;anchorC=pc;}
+      }
+    }
     removePiece(occ);
-    selectedPieceId=occ;placedAnchor=null;
+    selectedPieceId=occ; placedAnchor=null;
     buildAllTrays();updateControls();refreshBoard();scheduleSolutionCount();
     activeTouchId = e.touches[0].identifier;
-    ghost.showAtCell(minR,minC,e.touches[0].clientX,e.touches[0].clientY);
+    ghost.startDragFromBoard(anchorR,anchorC,r,c,e.touches[0].clientX,e.touches[0].clientY);
   } else if(ghost.visible&&!ghost.dragging&&selectedPieceId!==null&&!pieces[selectedPieceId].placed){
+    // Ghost is floating — start drag from this touch
     e.preventDefault();
     activeTouchId = e.touches[0].identifier;
     ghost.startDrag(e.touches[0].clientX,e.touches[0].clientY);
