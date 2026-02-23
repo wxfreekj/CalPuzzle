@@ -23,7 +23,28 @@
   }
   h1{font-family:'Playfair Display',serif;color:#3A2A10;font-size:clamp(1.3rem,5vw,2.1rem);
     margin-bottom:2px;letter-spacing:.03em;text-shadow:0 1px 3px rgba(100,60,10,.12);text-align:center}
-  .subtitle{color:#7A5C30;font-size:clamp(.72rem,.9rem,1rem);margin-bottom:12px;font-style:italic;text-align:center;padding:0 8px}
+  .subtitle{color:#7A5C30;font-size:clamp(.72rem,.9rem,1rem);margin-bottom:8px;font-style:italic;text-align:center;padding:0 8px}
+  
+  /* Date picker */
+  .date-picker-row{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+  .date-btn{
+    background:rgba(255,255,255,.5);border:1.5px solid #C8AA76;border-radius:6px;
+    padding:6px 12px;font-family:'Lora',serif;font-size:12px;color:#5C3A18;
+    cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:5px;
+  }
+  .date-btn:hover{background:rgba(139,111,71,.12);border-color:var(--board-border)}
+  .date-btn:active{transform:scale(.97)}
+  .date-btn.active{border-color:var(--selected-ring);background:rgba(212,96,26,.1);box-shadow:0 0 0 1px rgba(212,96,26,.2)}
+  .date-btn svg{width:14px;height:14px;stroke:#7A5C30;stroke-width:2;fill:none}
+  .date-input-wrap{position:relative}
+  .date-input{
+    font-family:'Playfair Display',serif;font-size:14px;font-weight:600;color:#3A2A10;
+    background:rgba(255,255,255,.6);border:1.5px solid #C8AA76;border-radius:6px;
+    padding:6px 10px;text-align:center;cursor:pointer;min-width:150px;
+  }
+  .date-input:focus{outline:none;border-color:var(--selected-ring)}
+  .date-input::-webkit-calendar-picker-indicator{cursor:pointer;opacity:.6}
+  
   .game-area{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap;justify-content:center;width:100%}
 
   /* Stats */
@@ -163,7 +184,8 @@
   @media(max-width:620px){
     body{padding:10px 0 80px}
     h1{font-size:1.4rem}
-    .subtitle{font-size:.75rem;margin-bottom:8px}
+    .subtitle{font-size:.75rem;margin-bottom:6px}
+    .date-picker-row{margin-bottom:8px}
     .game-area{gap:0;flex-direction:column;align-items:center}
     .sidebar{display:none}
     .stats-strip{display:grid}
@@ -184,7 +206,7 @@
   <div class="win-box">
     <h2>&#127881; Puzzle Solved!</h2>
     <div class="win-date" id="winDate"></div>
-    <p>You've uncovered today's date. Brilliant!</p>
+    <p>You've uncovered the date. Brilliant!</p>
     <div class="win-summary">
       <div class="win-stat"><div class="win-stat-val" id="winTime">—</div><div class="win-stat-lbl">Time</div></div>
       <div class="win-stat"><div class="win-stat-val" id="winMoves">—</div><div class="win-stat-lbl">Moves</div></div>
@@ -195,6 +217,16 @@
 
 <h1>Calendar Puzzle</h1>
 <div class="subtitle" id="subtitleEl">Place all pieces to reveal today's date</div>
+
+<div class="date-picker-row">
+  <button class="date-btn" id="btnToday" onclick="setToday()">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2m-4.2-5.8 1.4-1.4M4.8 19.2l1.4-1.4m0-11.6L4.8 4.8m14.4 14.4-1.4-1.4"/></svg>
+    Today
+  </button>
+  <div class="date-input-wrap">
+    <input type="date" class="date-input" id="dateInput" onchange="onDateChange()">
+  </div>
+</div>
 
 <div class="stats-strip">
   <div class="stats-grid" style="width:100%">
@@ -210,7 +242,7 @@
   </div>
   <div class="sidebar">
     <div class="panel">
-      <h3>Today's Progress</h3>
+      <h3>Progress</h3>
       <div class="stats-grid">
         <div class="stat-box"><div class="stat-icon">&#9201;</div><div class="stat-value" id="statTime">0:00</div><div class="stat-label">Time</div></div>
         <div class="stat-box"><div class="stat-icon">&#127919;</div><div class="stat-value" id="statMoves">0</div><div class="stat-label">Moves</div></div>
@@ -285,6 +317,9 @@ const PIECE_DEFS=[
   {id:9,name:'J',color:'#6B7C8C',cells:[[0,0],[0,1],[0,2],[1,0],[1,1]]},
 ];
 
+// ─── Current target date ──────────────────────────────────────────────────────
+let currentTargetDate = new Date();
+
 // ─── Cell size ────────────────────────────────────────────────────────────────
 function getCellSize(){
   return parseInt(getComputedStyle(document.documentElement).getPropertyValue('--cs'))||52;
@@ -312,8 +347,9 @@ function getCellLabel(r,c){
   if(r===7) return['Thu','Fri','Sat'][c-4];
   return'';
 }
-function computeTargets(){
-  const t=new Date(),mo=t.getMonth(),day=t.getDate(),dow=t.getDay();
+function computeTargets(date){
+  const t = date || new Date();
+  const mo=t.getMonth(),day=t.getDate(),dow=t.getDay();
   const mr=mo<6?0:1,mc=mo<6?mo:mo-6;
   let dr,dc;
   if(day<=28){dr=Math.floor((day-1)/7)+2;dc=(day-1)%7}else{dr=6;dc=day-29}
@@ -321,8 +357,56 @@ function computeTargets(){
   if(dow<=3){wr=6;wc=dow+3}else{wr=7;wc=dow}
   return[[mr,mc],[dr,dc],[wr,wc]];
 }
-const TARGET_CELLS=computeTargets();
-const TARGET_SET=new Set(TARGET_CELLS.map(([r,c])=>`${r},${c}`));
+
+let TARGET_CELLS=computeTargets(currentTargetDate);
+let TARGET_SET=new Set(TARGET_CELLS.map(([r,c])=>`${r},${c}`));
+
+function updateTargets(date){
+  currentTargetDate = date;
+  TARGET_CELLS = computeTargets(date);
+  TARGET_SET = new Set(TARGET_CELLS.map(([r,c])=>`${r},${c}`));
+  updateSubtitle();
+  updateDatePickerUI();
+}
+
+function updateSubtitle(){
+  const isToday = isSameDay(currentTargetDate, new Date());
+  const dateStr = currentTargetDate.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+  const el = document.getElementById('subtitleEl');
+  if(isToday){
+    el.textContent = `Today is ${dateStr} — can you expose it?`;
+  } else {
+    el.textContent = `Can you expose ${dateStr}?`;
+  }
+}
+
+function isSameDay(d1, d2){
+  return d1.getFullYear()===d2.getFullYear() && d1.getMonth()===d2.getMonth() && d1.getDate()===d2.getDate();
+}
+
+function updateDatePickerUI(){
+  const isToday = isSameDay(currentTargetDate, new Date());
+  document.getElementById('btnToday').classList.toggle('active', isToday);
+  // Format date for input (YYYY-MM-DD)
+  const y = currentTargetDate.getFullYear();
+  const m = String(currentTargetDate.getMonth()+1).padStart(2,'0');
+  const d = String(currentTargetDate.getDate()).padStart(2,'0');
+  document.getElementById('dateInput').value = `${y}-${m}-${d}`;
+}
+
+function setToday(){
+  updateTargets(new Date());
+  resetGame();
+}
+
+function onDateChange(){
+  const val = document.getElementById('dateInput').value;
+  if(!val) return;
+  const parts = val.split('-');
+  const date = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
+  updateTargets(date);
+  resetGame();
+}
 
 function normalize(cells){
   const minR=Math.min(...cells.map(([r])=>r)),minC=Math.min(...cells.map(([,c])=>c));
@@ -438,6 +522,26 @@ const ghost={
   offsetX:0,offsetY:0,
   // Original anchor to restore on failed drop
   _savedAr:null,_savedAc:null,
+
+  // Rebuild the ghost grid (called by refresh when piece shape changes)
+  refresh(){
+    if(!this.visible||selectedPieceId===null) return;
+    this._buildGrid();
+    // Re-center the ghost on the board
+    const cs=getCellSize();
+    const p=pieces[selectedPieceId];
+    const rows=p.cells.map(([r])=>r),cols=p.cells.map(([,c])=>c);
+    const maxR=Math.max(...rows),maxC=Math.max(...cols);
+    const gw=(maxC+1)*cs,gh=(maxR+1)*cs;
+    const boardEl=document.getElementById('board');
+    const rect=boardEl.getBoundingClientRect();
+    const x=rect.left+(rect.width-gw)/2;
+    const y=rect.top+(rect.height-gh)/2;
+    const el=document.getElementById('dragGhost');
+    el.style.left=x+'px';el.style.top=y+'px';
+    // Update offset for new shape
+    this.offsetX=cs*0.5;this.offsetY=cs*0.5;
+  },
 
   // Show ghost centered on the board (called when piece is selected via tap from tray)
   showAtBoard(){
@@ -659,6 +763,10 @@ function refreshBoard(previewAr,previewAc){
       const cell=cellEls[r][c];
       const ov=cell.querySelector('.cell-piece-overlay');
       const occupant=boardPieces[r][c];
+      
+      // Update target-cell class based on current TARGET_SET
+      cell.classList.toggle('target-cell', TARGET_SET.has(`${r},${c}`));
+      
       if(occupant!==null){
         ov.style.background=pieces[occupant].color;ov.classList.add('visible');cell.classList.add('covered');
       } else {
@@ -989,8 +1097,7 @@ function checkWin(){
   if(unc.length!==3) return;
   if(unc.every(k=>TARGET_SET.has(k))){
     stopTimer();ghost.hide();
-    const t=new Date();
-    document.getElementById('winDate').textContent=t.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+    document.getElementById('winDate').textContent=currentTargetDate.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
     document.getElementById('winTime').textContent=formatTime(timerSeconds);
     document.getElementById('winMoves').textContent=String(moveCount);
     document.getElementById('winOverlay').classList.add('show');
@@ -1009,9 +1116,9 @@ document.addEventListener('keydown',e=>{
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 (function(){
-  const t=new Date();
-  document.getElementById('subtitleEl').textContent=
-    `Today is ${t.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'})} — can you expose it?`;
+  currentTargetDate = new Date();
+  updateSubtitle();
+  updateDatePickerUI();
   initState();buildBoard();buildAllTrays();updateControls();refreshBoard();
 })();
 </script>
