@@ -200,6 +200,7 @@
   .mobile-toolbar{display:none;width:100%;flex-direction:column;gap:8px;margin-top:10px}
   .mobile-selected{font-size:12px;color:#5C3A18;text-align:center;font-style:italic;min-height:20px;line-height:1.4;padding:2px 0}
   .mobile-btns{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px}
+  .mobile-btns.has-remove{grid-template-columns:1fr 1fr 1fr 1fr 1fr}
   .mobile-btn{
     background:#6B4820;color:#FAF7EF;border:none;border-radius:8px;
     padding:0;height:52px;font-family:'Lora',serif;font-size:11px;cursor:pointer;
@@ -211,6 +212,8 @@
   .mobile-btn:disabled{opacity:.35;cursor:not-allowed;transform:none}
   .mobile-btn.green{background:#2A6B4A}
   .mobile-btn.green:active{background:#1A5038}
+  .mobile-btn.red{background:#9B3030}
+  .mobile-btn.red:active{background:#7A2020}
   .mobile-btn.outline{background:transparent;color:#7A5230;border:2px solid #C8AA76}
   .mobile-btn.outline:active{background:rgba(100,60,20,.12)}
   .mobile-btn-icon{font-size:20px;line-height:1}
@@ -344,6 +347,7 @@
         <button class="btn" id="btnFlip" onclick="flipSelected()" disabled>&#8660; Flip <span class="kbd">F</span></button>
       </div>
       <button class="btn btn-hint" id="btnHint" onclick="hintSelected()" disabled style="width:100%;margin-bottom:6px;flex:none">&#128161; Hint <span class="kbd">H</span></button>
+      <button class="btn" id="btnRemove" onclick="removeSelectedToTray()" style="width:100%;margin-bottom:6px;flex:none;background:#9B3030;display:none">&#9003; Remove from Board</button>
       <div class="solving-msg" id="solvingMsg">Thinking&#8230;</div>
       <button class="btn btn-reset" onclick="resetGame()">&#8634; Reset Puzzle</button>
     </div>
@@ -371,6 +375,9 @@
     </button>
     <button class="mobile-btn green" id="mbHint" onclick="hintSelected()" disabled>
       <span class="mobile-btn-icon">&#128161;</span><span class="mobile-btn-label">Hint</span>
+    </button>
+    <button class="mobile-btn red" id="mbRemove" onclick="removeSelectedToTray()" style="display:none">
+      <span class="mobile-btn-icon">&#9003;</span><span class="mobile-btn-label">Remove</span>
     </button>
     <button class="mobile-btn outline" onclick="resetGame()">
       <span class="mobile-btn-icon">&#8634;</span><span class="mobile-btn-label">Reset</span>
@@ -767,7 +774,7 @@ const ghost={
     }
   },
 
-  // Attempt placement or restore on drag end
+  // Attempt placement or return to tray on drag end
   endDrag(){
     if(!this.dragging) return;
     this.dragging=false;
@@ -775,23 +782,21 @@ const ghost={
     const ar=this.lastAr, ac=this.lastAc;
 
     if(ar!==null&&selectedPieceId!==null&&!pieces[selectedPieceId].placed&&isValidPlacement(selectedPieceId,ar,ac)){
+      // Valid drop → place it
       recordPlacement(ar,ac);
       placePiece(selectedPieceId,ar,ac);
       this.hide();
       buildAllTrays();updateControls();refreshBoard();checkWin();scheduleSolutionCount();
+    } else if(this._savedAr!==null&&selectedPieceId!==null&&!pieces[selectedPieceId].placed){
+      // Picked up from board but dropped off/invalid → return to tray (not restore)
+      this._savedAr=null; this._savedAc=null;
+      // Piece stays unplaced — show ghost centered on board so they can re-drag
+      this.showAtBoard();
+      buildAllTrays();updateControls();refreshBoard();scheduleSolutionCount();
     } else {
-      // Failed drop — restore to saved position if picking up, else float
-      if(this._savedAr!==null&&selectedPieceId!==null&&!pieces[selectedPieceId].placed){
-        placePiece(selectedPieceId,this._savedAr,this._savedAc);
-        placedAnchor={ar:this._savedAr,ac:this._savedAc};
-        this._savedAr=null; this._savedAc=null;
-        buildAllTrays();updateControls();refreshBoard();
-        this.hide();
-        scheduleSolutionCount();
-      } else {
-        this.showAtBoard();
-        refreshBoard();
-      }
+      // Unplaced piece dropped off board → keep floating
+      this.showAtBoard();
+      refreshBoard();
     }
   },
 
@@ -850,15 +855,9 @@ document.addEventListener('touchcancel',e=>{
   ghost.dragging=false;
   document.body.classList.remove('dragging');
   activeTouchId = null;
-  if(ghost._savedAr!==null&&selectedPieceId!==null&&!pieces[selectedPieceId].placed){
-    placePiece(selectedPieceId,ghost._savedAr,ghost._savedAc);
-    placedAnchor={ar:ghost._savedAr,ac:ghost._savedAc};
-    ghost.hide();
-    buildAllTrays();updateControls();refreshBoard();scheduleSolutionCount();
-  } else {
-    ghost.showAtBoard();
-    refreshBoard();
-  }
+  ghost._savedAr=null; ghost._savedAc=null;
+  ghost.showAtBoard();
+  buildAllTrays();updateControls();refreshBoard();scheduleSolutionCount();
 },{passive:false});
 
 // Board container touch: start drag when ghost is floating (not yet dragging)
@@ -1027,18 +1026,38 @@ function selectPiece(i){
 // ─── Controls ─────────────────────────────────────────────────────────────────
 function updateControls(){
   const has=selectedPieceId!==null;
+  const isPlaced=has&&pieces[selectedPieceId].placed;
   ['btnRotate','btnFlip','btnHint'].forEach(id=>{const el=document.getElementById(id);if(el) el.disabled=!has;});
+  // Desktop remove button
+  const btnRem=document.getElementById('btnRemove');
+  if(btnRem) btnRem.style.display=isPlaced?'flex':'none';
+  
   const info=document.getElementById('selectedInfo');
   if(info){
     if(!has) info.textContent='\u2190 Select a piece to begin';
-    else if(pieces[selectedPieceId].placed) info.textContent=`Piece ${pieces[selectedPieceId].name} placed \u2022 rotate/flip to adjust`;
+    else if(isPlaced) info.textContent=`Piece ${pieces[selectedPieceId].name} placed \u2022 rotate/flip/remove`;
     else info.textContent=`Piece ${pieces[selectedPieceId].name} selected \u2022 click board to place`;
   }
   ['mbRotate','mbFlip','mbHint'].forEach(id=>{const el=document.getElementById(id);if(el) el.disabled=!has;});
+  
+  // Mobile remove button: show when placed piece selected, hide hint
+  const mbRem=document.getElementById('mbRemove');
+  const mbHint=document.getElementById('mbHint');
+  const mbBtns=document.querySelector('.mobile-btns');
+  if(mbRem&&mbHint&&mbBtns){
+    if(isPlaced){
+      mbRem.style.display='flex';
+      mbBtns.classList.add('has-remove');
+    } else {
+      mbRem.style.display='none';
+      mbBtns.classList.remove('has-remove');
+    }
+  }
+  
   const minfo=document.getElementById('mobileSelectedInfo');
   if(minfo){
     if(!has) minfo.textContent='Tap a piece below, then touch board to place';
-    else if(pieces[selectedPieceId].placed) minfo.textContent=`Piece ${pieces[selectedPieceId].name} placed \u2022 rotate/flip to adjust`;
+    else if(isPlaced) minfo.textContent=`Piece ${pieces[selectedPieceId].name} placed \u2022 tap it to move, or remove`;
     else minfo.textContent=`Touch board to drag piece ${pieces[selectedPieceId].name}`;
   }
 }
@@ -1105,6 +1124,15 @@ function flipSelected(){
     pieces[pid].cells=flipH(pieces[pid].cells);
     ghost.refresh();buildAllTrays();refreshBoard();
   }
+}
+function removeSelectedToTray(){
+  if(selectedPieceId===null) return;
+  const pid=selectedPieceId;
+  if(pieces[pid].placed) removePiece(pid);
+  selectedPieceId=null;
+  placedAnchor=null;
+  ghost.hide();
+  buildAllTrays();updateControls();refreshBoard();scheduleSolutionCount();
 }
 
 // ─── Solver ───────────────────────────────────────────────────────────────────
@@ -1201,31 +1229,48 @@ function onCellClick(r,c){
   }
 }
 
-// Mobile: touch a board cell — either pick up a placed piece or start drag
+// Mobile: touch a board cell — select placed piece or pick up if already selected
 function onCellTouchStart(r,c,e){
   const occ=boardPieces[r][c];
   if(occ!==null){
-    // Pick up a placed piece — start drag immediately with grab at touched cell
     e.preventDefault();
     startTimerIfNeeded();
-    if(selectedPieceId!==null&&selectedPieceId!==occ&&pieces[selectedPieceId]?.placed) removePiece(selectedPieceId);
-    // Find the piece's anchor (top-left of occupied cells on board)
-    let anchorR=8,anchorC=7;
-    for(let pr=0;pr<8;pr++) for(let pc=0;pc<7;pc++){
-      if(boardPieces[pr][pc]===occ){
-        if(pr<anchorR||(pr===anchorR&&pc<anchorC)){anchorR=pr;anchorC=pc;}
+    
+    if(selectedPieceId===occ){
+      // Already selected → pick it up for repositioning
+      let anchorR=8,anchorC=7;
+      for(let pr=0;pr<8;pr++) for(let pc=0;pc<7;pc++){
+        if(boardPieces[pr][pc]===occ){
+          if(pr<anchorR||(pr===anchorR&&pc<anchorC)){anchorR=pr;anchorC=pc;}
+        }
       }
+      removePiece(occ);
+      placedAnchor=null;
+      buildAllTrays();updateControls();refreshBoard();scheduleSolutionCount();
+      activeTouchId = e.touches[0].identifier;
+      ghost.startDragFromBoard(anchorR,anchorC,r,c,e.touches[0].clientX,e.touches[0].clientY);
+    } else {
+      // First tap → just select it (show ring + remove button)
+      if(selectedPieceId!==null&&selectedPieceId!==occ&&pieces[selectedPieceId]?.placed){
+        // Don't auto-remove previous; just deselect
+      }
+      selectedPieceId=occ;
+      placedAnchor=null;
+      ghost.hide();
+      buildAllTrays();updateControls();refreshBoard();
     }
-    removePiece(occ);
-    selectedPieceId=occ; placedAnchor=null;
-    buildAllTrays();updateControls();refreshBoard();scheduleSolutionCount();
-    activeTouchId = e.touches[0].identifier;
-    ghost.startDragFromBoard(anchorR,anchorC,r,c,e.touches[0].clientX,e.touches[0].clientY);
   } else if(ghost.visible&&!ghost.dragging&&selectedPieceId!==null&&!pieces[selectedPieceId].placed){
     // Ghost is floating — start drag from this touch
     e.preventDefault();
     activeTouchId = e.touches[0].identifier;
     ghost.startDrag(e.touches[0].clientX,e.touches[0].clientY);
+  } else if(selectedPieceId!==null&&pieces[selectedPieceId].placed){
+    // Tapped empty cell while a placed piece is selected → deselect
+    e.preventDefault();
+    selectedPieceId=null;
+    placedAnchor=null;
+    ghost.hide();
+    buildAllTrays();updateControls();refreshBoard();
   }
 }
 
@@ -1250,6 +1295,7 @@ document.addEventListener('keydown',e=>{
   if(e.key==='r'||e.key==='R') rotateSelected();
   if(e.key==='f'||e.key==='F') flipSelected();
   if(e.key==='h'||e.key==='H') hintSelected();
+  if(e.key==='x'||e.key==='X'||e.key==='Delete'||e.key==='Backspace') removeSelectedToTray();
   if(e.key==='Escape'){selectedPieceId=null;placedAnchor=null;ghost.hide();buildAllTrays();updateControls();refreshBoard();}
 });
 
