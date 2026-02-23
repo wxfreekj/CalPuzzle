@@ -2,7 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="format-detection" content="telephone=no">
 <title>Calendar Puzzle</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Lora:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
 <style>
@@ -11,15 +15,47 @@
     --cell-text:#3A2A10;--cell-border:#C8AA76;
     --selected-ring:#D4601A;--target-color:#D4B017;
     --cs:60px;
+    /* Safe area insets for iPhone notch/Dynamic Island */
+    --safe-top:env(safe-area-inset-top, 0px);
+    --safe-bottom:env(safe-area-inset-bottom, 0px);
+    --safe-left:env(safe-area-inset-left, 0px);
+    --safe-right:env(safe-area-inset-right, 0px);
   }
-  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-  html,body{overscroll-behavior:none}
+  *{
+    box-sizing:border-box;margin:0;padding:0;
+    -webkit-tap-highlight-color:transparent;
+    -webkit-touch-callout:none;
+  }
+  html{
+    overscroll-behavior:none;
+    overflow:hidden;
+    position:fixed;
+    width:100%;
+    height:100%;
+  }
   body{
     background:var(--bg);font-family:'Lora',Georgia,serif;
-    min-height:100vh;display:flex;flex-direction:column;align-items:center;
+    min-height:100%;
+    height:100%;
+    display:flex;flex-direction:column;align-items:center;
     padding:14px 10px 32px;
+    padding-top:calc(14px + var(--safe-top));
+    padding-bottom:calc(32px + var(--safe-bottom));
+    padding-left:calc(10px + var(--safe-left));
+    padding-right:calc(10px + var(--safe-right));
     background-image:radial-gradient(ellipse at 20% 10%,rgba(200,160,80,.08) 0%,transparent 60%),
                      radial-gradient(ellipse at 80% 90%,rgba(160,100,40,.07) 0%,transparent 60%);
+    overscroll-behavior:none;
+    overflow-y:auto;
+    overflow-x:hidden;
+    -webkit-overflow-scrolling:touch;
+    -webkit-user-select:none;
+    user-select:none;
+  }
+  /* Prevent body scroll during drag */
+  body.dragging{
+    overflow:hidden;
+    touch-action:none;
   }
   h1{font-family:'Playfair Display',serif;color:#3A2A10;font-size:clamp(1.3rem,5vw,2.1rem);
     margin-bottom:2px;letter-spacing:.03em;text-shadow:0 1px 3px rgba(100,60,10,.12);text-align:center}
@@ -29,21 +65,29 @@
   .date-picker-row{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:12px;flex-wrap:wrap}
   .date-btn{
     background:rgba(255,255,255,.5);border:1.5px solid #C8AA76;border-radius:6px;
-    padding:6px 12px;font-family:'Lora',serif;font-size:12px;color:#5C3A18;
+    padding:8px 14px;font-family:'Lora',serif;font-size:13px;color:#5C3A18;
     cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:5px;
+    min-height:44px; /* iOS minimum touch target */
+    touch-action:manipulation;
   }
   .date-btn:hover{background:rgba(139,111,71,.12);border-color:var(--board-border)}
-  .date-btn:active{transform:scale(.97)}
+  .date-btn:active{transform:scale(.97);background:rgba(139,111,71,.2)}
   .date-btn.active{border-color:var(--selected-ring);background:rgba(212,96,26,.1);box-shadow:0 0 0 1px rgba(212,96,26,.2)}
-  .date-btn svg{width:14px;height:14px;stroke:#7A5C30;stroke-width:2;fill:none}
+  .date-btn svg{width:16px;height:16px;stroke:#7A5C30;stroke-width:2;fill:none}
   .date-input-wrap{position:relative}
   .date-input{
     font-family:'Playfair Display',serif;font-size:14px;font-weight:600;color:#3A2A10;
     background:rgba(255,255,255,.6);border:1.5px solid #C8AA76;border-radius:6px;
-    padding:6px 10px;text-align:center;cursor:pointer;min-width:150px;
+    padding:8px 12px;text-align:center;cursor:pointer;min-width:160px;
+    min-height:44px; /* iOS minimum touch target */
+    touch-action:manipulation;
   }
   .date-input:focus{outline:none;border-color:var(--selected-ring)}
-  .date-input::-webkit-calendar-picker-indicator{cursor:pointer;opacity:.6}
+  .date-input::-webkit-calendar-picker-indicator{
+    cursor:pointer;opacity:.6;
+    padding:4px;
+    min-width:20px;min-height:20px;
+  }
   
   .game-area{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap;justify-content:center;width:100%}
 
@@ -58,13 +102,23 @@
   .stat-value.sol-low{color:#B55020}
 
   /* Board */
-  .board-container{background:var(--board-bg);border:3px solid var(--board-border);border-radius:10px;padding:10px;
-    box-shadow:0 8px 28px rgba(60,35,10,.22),inset 0 1px 0 rgba(255,255,255,.3);flex-shrink:0}
-  .board{display:grid;grid-template-columns:repeat(7,var(--cs));grid-template-rows:repeat(8,var(--cs));gap:0}
-  .cell{width:var(--cs);height:var(--cs);border:1px solid var(--cell-border);
+  .board-container{
+    background:var(--board-bg);border:3px solid var(--board-border);border-radius:10px;padding:10px;
+    box-shadow:0 8px 28px rgba(60,35,10,.22),inset 0 1px 0 rgba(255,255,255,.3);flex-shrink:0;
+    touch-action:none; /* Critical for mobile drag */
+  }
+  .board{
+    display:grid;grid-template-columns:repeat(7,var(--cs));grid-template-rows:repeat(8,var(--cs));gap:0;
+    touch-action:none;
+  }
+  .cell{
+    width:var(--cs);height:var(--cs);border:1px solid var(--cell-border);
     background:#fff;display:flex;align-items:center;justify-content:center;
     font-size:calc(var(--cs)*.2);font-weight:500;color:var(--cell-text);cursor:pointer;
-    transition:background .12s;user-select:none;position:relative;overflow:hidden;touch-action:none}
+    transition:background .12s;user-select:none;position:relative;overflow:hidden;
+    touch-action:none;
+    -webkit-user-select:none;
+  }
   .cell.target-cell{box-shadow:inset 0 0 0 2.5px var(--target-color);animation:tp 2.4s ease-in-out infinite}
   @keyframes tp{
     0%,100%{box-shadow:inset 0 0 0 2.5px var(--target-color),0 0 0 0 rgba(212,176,23,0)}
@@ -89,9 +143,10 @@
     display:none;transform-origin:top left;
     filter:drop-shadow(0 6px 18px rgba(0,0,0,.38));
     transition:filter .12s;
+    will-change:transform,left,top; /* GPU acceleration */
   }
   #dragGhost.visible{display:block}
-  #dragGhost.floating{opacity:.72}   /* resting over board, not being dragged */
+  #dragGhost.floating{opacity:.72}
   #dragGhost.dragging{opacity:.88}
   #dragGhost.over-valid{filter:drop-shadow(0 6px 18px rgba(50,160,80,.55))}
   #dragGhost.over-invalid{filter:drop-shadow(0 6px 18px rgba(180,50,50,.5))}
@@ -105,20 +160,26 @@
   .panel h3{font-family:'Playfair Display',serif;font-size:.95rem;color:#5C3A18;
     margin-bottom:10px;border-bottom:1px solid #C8AA76;padding-bottom:6px;letter-spacing:.02em}
   .pieces-tray{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-  .piece-wrapper{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  .piece-wrapper{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
     gap:3px;cursor:pointer;padding:6px 4px;border:2px solid transparent;border-radius:6px;
-    transition:all .15s;min-height:56px;background:rgba(255,255,255,.35);touch-action:manipulation}
+    transition:all .15s;min-height:56px;background:rgba(255,255,255,.35);
+    touch-action:manipulation;
+  }
   .piece-wrapper:hover:not(.placed-away){background:rgba(139,111,71,.12);border-color:var(--board-border)}
   .piece-wrapper.selected{border-color:var(--selected-ring);background:rgba(212,96,26,.1);box-shadow:0 0 0 1px rgba(212,96,26,.3)}
-  .piece-wrapper.placed-away{opacity:.28;cursor:default;filter:grayscale(.4)} /* placed, not selected */
-  .piece-wrapper.placed-selected{opacity:.7;border-color:var(--selected-ring);background:rgba(212,96,26,.08)} /* placed AND selected */
+  .piece-wrapper.placed-away{opacity:.28;cursor:default;filter:grayscale(.4)}
+  .piece-wrapper.placed-selected{opacity:.7;border-color:var(--selected-ring);background:rgba(212,96,26,.08)}
   .piece-mini{display:grid;gap:0}
   .piece-mini-cell{width:13px;height:13px;border-radius:0;border:none}
 
   .ctrl-row{display:flex;gap:6px;margin-bottom:8px}
-  .btn{background:#6B4820;color:#FAF7EF;border:none;border-radius:5px;padding:8px 10px;
+  .btn{
+    background:#6B4820;color:#FAF7EF;border:none;border-radius:5px;padding:8px 10px;
     font-family:'Lora',serif;font-size:12px;cursor:pointer;transition:background .13s,transform .08s;
-    flex:1;display:flex;align-items:center;justify-content:center;gap:4px;min-height:40px;touch-action:manipulation}
+    flex:1;display:flex;align-items:center;justify-content:center;gap:4px;
+    min-height:44px;touch-action:manipulation;
+  }
   .btn:hover{background:#8B6A3A;transform:translateY(-1px)}
   .btn:active{background:#4A3010;transform:none}
   .btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
@@ -126,7 +187,7 @@
   .btn-hint:hover{background:#3A8A60}
   .btn-hint:disabled{opacity:.4;cursor:not-allowed;transform:none}
   .btn-reset{background:transparent;color:#7A5230;border:2px solid #C8AA76;font-size:12px;
-    width:100%;padding:7px;margin-top:2px;flex:none;min-height:40px}
+    width:100%;padding:7px;margin-top:2px;flex:none;min-height:44px}
   .btn-reset:hover{background:rgba(100,60,20,.08)}
   .kbd{display:inline-block;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);
     border-radius:3px;padding:0 4px;font-size:10px;font-family:monospace;line-height:1.4}
@@ -141,17 +202,20 @@
   .mobile-toolbar{display:none;width:100%;flex-direction:column;gap:8px;margin-top:10px}
   .mobile-selected{font-size:12px;color:#5C3A18;text-align:center;font-style:italic;min-height:20px;line-height:1.4;padding:2px 0}
   .mobile-btns{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px}
-  .mobile-btn{background:#6B4820;color:#FAF7EF;border:none;border-radius:8px;
-    padding:0;height:48px;font-family:'Lora',serif;font-size:11px;cursor:pointer;
+  .mobile-btn{
+    background:#6B4820;color:#FAF7EF;border:none;border-radius:8px;
+    padding:0;height:52px;font-family:'Lora',serif;font-size:11px;cursor:pointer;
     display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
-    touch-action:manipulation;transition:background .1s,transform .08s}
+    touch-action:manipulation;transition:background .1s,transform .08s;
+    min-width:48px; /* Android minimum touch target */
+  }
   .mobile-btn:active{background:#4A3010;transform:scale(.95)}
   .mobile-btn:disabled{opacity:.35;cursor:not-allowed;transform:none}
   .mobile-btn.green{background:#2A6B4A}
   .mobile-btn.green:active{background:#1A5038}
   .mobile-btn.outline{background:transparent;color:#7A5230;border:2px solid #C8AA76}
   .mobile-btn.outline:active{background:rgba(100,60,20,.12)}
-  .mobile-btn-icon{font-size:18px;line-height:1}
+  .mobile-btn-icon{font-size:20px;line-height:1}
   .mobile-btn-label{font-size:9px;letter-spacing:.03em;text-transform:uppercase;line-height:1}
   .mobile-solving{font-size:11px;color:#7A5230;text-align:center;font-style:italic;display:none;padding:2px 0}
   .mobile-solving.show{display:block}
@@ -160,11 +224,18 @@
   .mobile-tray-wrap{display:none;width:100%;margin-top:8px}
   .mobile-tray-wrap .panel{padding:10px}
   .mobile-pieces-tray{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
-  .mobile-pieces-tray .piece-wrapper{min-height:44px;padding:4px 2px}
+  .mobile-pieces-tray .piece-wrapper{
+    min-height:52px;padding:6px 2px;
+    touch-action:none; /* Enable custom touch handling */
+  }
 
   /* Win overlay */
   .win-overlay{position:fixed;inset:0;background:rgba(30,18,6,.72);display:none;
-    align-items:center;justify-content:center;z-index:1000;animation:fadeIn .3s ease;padding:16px}
+    align-items:center;justify-content:center;z-index:1000;animation:fadeIn .3s ease;
+    padding:16px;
+    padding-top:calc(16px + var(--safe-top));
+    padding-bottom:calc(16px + var(--safe-bottom));
+  }
   .win-overlay.show{display:flex}
   @keyframes fadeIn{from{opacity:0}to{opacity:1}}
   .win-box{background:#FBF8F0;border:3px solid #7A5C30;border-radius:14px;
@@ -182,19 +253,33 @@
 
   /* Mobile breakpoint */
   @media(max-width:620px){
-    body{padding:10px 0 80px}
+    body{padding:10px 0 20px;padding-top:calc(10px + var(--safe-top));padding-bottom:calc(20px + var(--safe-bottom))}
     h1{font-size:1.4rem}
     .subtitle{font-size:.75rem;margin-bottom:6px}
-    .date-picker-row{margin-bottom:8px}
+    .date-picker-row{margin-bottom:8px;padding:0 10px}
     .game-area{gap:0;flex-direction:column;align-items:center}
     .sidebar{display:none}
     .stats-strip{display:grid}
     .board-container{border-radius:0;border-left:none;border-right:none;padding:0;
       box-shadow:none;border-top:2px solid var(--board-border);border-bottom:2px solid var(--board-border)}
-    .mobile-toolbar{display:flex}
-    .mobile-tray-wrap{display:block}
+    .mobile-toolbar{display:flex;padding:0 10px}
+    .mobile-tray-wrap{display:block;padding:0 10px}
     .stats-strip .stats-grid,.stats-strip{width:100%}
     .stats-strip{padding:0 12px}
+  }
+  
+  /* Large phone screens (iPhone Pro Max, Galaxy Ultra) */
+  @media(max-width:620px) and (min-width:400px){
+    :root{--cs:min(52px, calc((100vw - 20px) / 7))}
+  }
+  
+  /* Smaller phones */
+  @media(max-width:399px){
+    :root{--cs:calc((100vw - 20px) / 7)}
+    .mobile-pieces-tray{grid-template-columns:repeat(5,1fr);gap:4px}
+    .mobile-pieces-tray .piece-wrapper{min-height:48px;padding:4px 2px}
+    .mobile-btns{gap:4px}
+    .mobile-btn{height:48px}
   }
 </style>
 </head>
@@ -211,7 +296,7 @@
       <div class="win-stat"><div class="win-stat-val" id="winTime">—</div><div class="win-stat-lbl">Time</div></div>
       <div class="win-stat"><div class="win-stat-val" id="winMoves">—</div><div class="win-stat-lbl">Moves</div></div>
     </div>
-    <button class="btn" style="margin:auto;max-width:160px;padding:10px 20px;font-size:14px;flex:none;min-height:44px" onclick="closeWin()">Keep Playing</button>
+    <button class="btn" style="margin:auto;max-width:160px;padding:10px 20px;font-size:14px;flex:none;min-height:48px" onclick="closeWin()">Keep Playing</button>
   </div>
 </div>
 
@@ -278,7 +363,7 @@
 </div>
 
 <div class="mobile-toolbar" id="mobileToolbar">
-  <div class="mobile-selected" id="mobileSelectedInfo">Tap or drag a piece below</div>
+  <div class="mobile-selected" id="mobileSelectedInfo">Tap a piece below, then drag to board</div>
   <div class="mobile-btns">
     <button class="mobile-btn" id="mbRotate" onclick="rotateSelected()" disabled>
       <span class="mobile-btn-icon">&#8635;</span><span class="mobile-btn-label">Rotate</span>
@@ -317,20 +402,33 @@ const PIECE_DEFS=[
   {id:9,name:'J',color:'#6B7C8C',cells:[[0,0],[0,1],[0,2],[1,0],[1,1]]},
 ];
 
+// ─── Detect mobile ────────────────────────────────────────────────────────────
+const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+
 // ─── Current target date ──────────────────────────────────────────────────────
 let currentTargetDate = new Date();
 
 // ─── Cell size ────────────────────────────────────────────────────────────────
 function getCellSize(){
-  return parseInt(getComputedStyle(document.documentElement).getPropertyValue('--cs'))||52;
+  const computed = getComputedStyle(document.documentElement).getPropertyValue('--cs');
+  // Handle min() and calc() by measuring actual cell
+  if(cellEls && cellEls[2] && cellEls[2][0]){
+    return cellEls[2][0].offsetWidth || 52;
+  }
+  return parseInt(computed) || 52;
 }
+
 function setCellSize(){
-  const avail=Math.min(window.innerWidth-40,420);
-  const cs=Math.floor(avail/7);
-  document.documentElement.style.setProperty('--cs',cs+'px');
+  const avail = Math.min(window.innerWidth - 20, 420);
+  const cs = Math.floor(avail / 7);
+  document.documentElement.style.setProperty('--cs', cs + 'px');
 }
 setCellSize();
-window.addEventListener('resize',setCellSize);
+window.addEventListener('resize', setCellSize);
+window.addEventListener('orientationchange', () => {
+  setTimeout(setCellSize, 100);
+});
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function isActive(r,c){
@@ -387,7 +485,6 @@ function isSameDay(d1, d2){
 function updateDatePickerUI(){
   const isToday = isSameDay(currentTargetDate, new Date());
   document.getElementById('btnToday').classList.toggle('active', isToday);
-  // Format date for input (YYYY-MM-DD)
   const y = currentTargetDate.getFullYear();
   const m = String(currentTargetDate.getMonth()+1).padStart(2,'0');
   const d = String(currentTargetDate.getDate()).padStart(2,'0');
@@ -417,11 +514,10 @@ function flipH(cells){return normalize(cells.map(([r,c])=>[r,-c]))}
 
 // ─── Game state ───────────────────────────────────────────────────────────────
 let pieces,boardPieces,cellEls=[];
-let selectedPieceId=null; // stays set after placement until new piece chosen
+let selectedPieceId=null;
 let hoverCell=null;
 let moveCount=0,timerStarted=false,timerSeconds=0,timerInterval=null,solComputeTimer=null;
-// track anchor position of placed-selected piece so rotate/flip can re-anchor
-let placedAnchor=null; // {ar, ac} of top-left of currently placed+selected piece
+let placedAnchor=null;
 
 function initState(){
   pieces=PIECE_DEFS.map(p=>({...p,cells:p.cells.map(c=>[...c]),placed:false}));
@@ -511,23 +607,18 @@ function scheduleSolutionCount(){
 }
 
 // ─── Ghost drag system ────────────────────────────────────────────────────────
-// Two modes:
-//   floating  – ghost visible at board center (after tapping tray), not being dragged
-//   dragging  – finger down, ghost following touch
 const ghost={
   visible:false,
   dragging:false,
   lastAr:null,lastAc:null,
-  // Where within the ghost element the finger landed (so ghost doesn't jump on pickup)
   offsetX:0,offsetY:0,
-  // Original anchor to restore on failed drop
   _savedAr:null,_savedAc:null,
+  _startX:0,_startY:0,
+  _hasMoved:false,
 
-  // Rebuild the ghost grid (called by refresh when piece shape changes)
   refresh(){
     if(!this.visible||selectedPieceId===null) return;
     this._buildGrid();
-    // Re-center the ghost on the board
     const cs=getCellSize();
     const p=pieces[selectedPieceId];
     const rows=p.cells.map(([r])=>r),cols=p.cells.map(([,c])=>c);
@@ -539,11 +630,9 @@ const ghost={
     const y=rect.top+(rect.height-gh)/2;
     const el=document.getElementById('dragGhost');
     el.style.left=x+'px';el.style.top=y+'px';
-    // Update offset for new shape
     this.offsetX=cs*0.5;this.offsetY=cs*0.5;
   },
 
-  // Show ghost centered on the board (called when piece is selected via tap from tray)
   showAtBoard(){
     if(selectedPieceId===null) return;
     this._buildGrid();
@@ -561,16 +650,12 @@ const ghost={
     el.className='visible floating';
     this.visible=true;this.dragging=false;
     this.lastAr=null;this.lastAc=null;
-    // Default offset: finger relative to top-left of ghost = half a cell
     this.offsetX=cs*0.5;this.offsetY=cs*0.5;
   },
 
-  // Place ghost exactly over a board anchor cell, ready to drag.
-  // touchX/touchY = finger screen coords at the moment of pickup.
   showAtCell(ar,ac,touchX,touchY){
     if(selectedPieceId===null) return;
     this._buildGrid();
-    // Find the top-left corner of the anchor cell in screen coords
     const cellEl=cellEls[ar][ac];
     const rect=cellEl.getBoundingClientRect();
     const el=document.getElementById('dragGhost');
@@ -579,20 +664,32 @@ const ghost={
     el.className='visible dragging';
     this.visible=true;this.dragging=true;
     this.lastAr=ar;this.lastAc=ac;
-    // Offset = where finger landed relative to ghost top-left
     this.offsetX=touchX-rect.left;
     this.offsetY=touchY-rect.top;
+    this._startX=touchX;
+    this._startY=touchY;
+    this._hasMoved=false;
+    document.body.classList.add('dragging');
   },
 
   startDrag(clientX,clientY){
     if(!this.visible||selectedPieceId===null) return;
     this.dragging=true;
+    this._startX=clientX;
+    this._startY=clientY;
+    this._hasMoved=false;
     this._moveTo(clientX,clientY);
     document.getElementById('dragGhost').className='visible dragging';
+    document.body.classList.add('dragging');
   },
 
   move(clientX,clientY){
     if(!this.dragging) return;
+    
+    const dx = Math.abs(clientX - this._startX);
+    const dy = Math.abs(clientY - this._startY);
+    if(dx > 5 || dy > 5) this._hasMoved = true;
+    
     this._moveTo(clientX,clientY);
     const{ar,ac}=this._boardCellAt(clientX,clientY);
     this.lastAr=ar;this.lastAc=ac;
@@ -610,14 +707,15 @@ const ghost={
   endDrag(){
     if(!this.dragging) return;
     this.dragging=false;
+    document.body.classList.remove('dragging');
     const ar=this.lastAr,ac=this.lastAc;
+    
     if(ar!==null&&selectedPieceId!==null&&!pieces[selectedPieceId].placed&&isValidPlacement(selectedPieceId,ar,ac)){
       recordPlacement(ar,ac);
       placePiece(selectedPieceId,ar,ac);
       this.hide();
       buildAllTrays();updateControls();refreshBoard();checkWin();scheduleSolutionCount();
     } else {
-      // Failed drop — restore to original position if we have one
       if(this._savedAr!==null&&selectedPieceId!==null&&!pieces[selectedPieceId].placed){
         placePiece(selectedPieceId,this._savedAr,this._savedAc);
         placedAnchor={ar:this._savedAr,ac:this._savedAc};
@@ -637,6 +735,7 @@ const ghost={
     this.visible=false;this.dragging=false;
     this.lastAr=null;this.lastAc=null;
     this._savedAr=null;this._savedAc=null;
+    document.body.classList.remove('dragging');
   },
 
   _buildGrid(){
@@ -660,7 +759,6 @@ const ghost={
     }
   },
 
-  // Move ghost so the finger is at (offsetX, offsetY) within it
   _moveTo(clientX,clientY){
     const el=document.getElementById('dragGhost');
     el.style.left=(clientX-this.offsetX)+'px';
@@ -669,9 +767,10 @@ const ghost={
 
   _boardCellAt(clientX,clientY){
     const el=document.getElementById('dragGhost');
-    const prev=el.style.display;el.style.display='none';
+    const prevVis=el.style.visibility;
+    el.style.visibility='hidden';
     const target=document.elementFromPoint(clientX,clientY);
-    el.style.display=prev;
+    el.style.visibility=prevVis;
     if(!target) return{ar:null,ac:null};
     let t=target;
     while(t&&!t._cellCoords) t=t.parentElement;
@@ -680,23 +779,31 @@ const ghost={
   }
 };
 
-// Document-level touch handlers
+// ─── Document-level touch handlers ────────────────────────────────────────────
+let activeTouchId = null;
+
 document.addEventListener('touchmove',e=>{
   if(!ghost.dragging) return;
   e.preventDefault();
-  ghost.move(e.touches[0].clientX,e.touches[0].clientY);
+  const touch = Array.from(e.touches).find(t => t.identifier === activeTouchId) || e.touches[0];
+  if(touch) ghost.move(touch.clientX, touch.clientY);
 },{passive:false});
 
 document.addEventListener('touchend',e=>{
   if(!ghost.dragging) return;
-  e.preventDefault();
-  ghost.endDrag();
+  const ended = Array.from(e.changedTouches).find(t => t.identifier === activeTouchId);
+  if(ended || e.touches.length === 0){
+    e.preventDefault();
+    ghost.endDrag();
+    activeTouchId = null;
+  }
 },{passive:false});
 
-document.addEventListener('touchcancel',()=>{
+document.addEventListener('touchcancel',e=>{
   if(!ghost.dragging) return;
   ghost.dragging=false;
-  // Restore to original board position if available
+  document.body.classList.remove('dragging');
+  activeTouchId = null;
   if(ghost._savedAr!==null&&selectedPieceId!==null&&!pieces[selectedPieceId].placed){
     placePiece(selectedPieceId,ghost._savedAr,ghost._savedAc);
     placedAnchor={ar:ghost._savedAr,ac:ghost._savedAc};
@@ -706,12 +813,13 @@ document.addEventListener('touchcancel',()=>{
     ghost.showAtBoard();
     refreshBoard();
   }
-});
+},{passive:false});
 
-// Touching the board area while ghost is floating starts the drag
+// Board container touch handler
 document.getElementById('boardContainer').addEventListener('touchstart',e=>{
   if(ghost.visible&&!ghost.dragging&&selectedPieceId!==null&&!pieces[selectedPieceId].placed){
     e.preventDefault();
+    activeTouchId = e.touches[0].identifier;
     ghost.startDrag(e.touches[0].clientX,e.touches[0].clientY);
   }
 },{passive:false});
@@ -732,6 +840,7 @@ function buildBoard(){
         if(TARGET_SET.has(`${r},${c}`)) cell.classList.add('target-cell');
         const ov=document.createElement('div');ov.className='cell-piece-overlay';cell.appendChild(ov);
         const lb=document.createElement('span');lb.className='cell-label';lb.textContent=getCellLabel(r,c);cell.appendChild(lb);
+        
         cell.addEventListener('mouseenter',()=>{hoverCell={r,c};refreshBoard()});
         cell.addEventListener('mouseleave',()=>{hoverCell=null;refreshBoard()});
         cell.addEventListener('click',()=>onCellClick(r,c));
@@ -744,14 +853,7 @@ function buildBoard(){
 
 function refreshBoard(previewAr,previewAc){
   const pid=selectedPieceId;
-  const placedCells=pid!==null&&pieces[pid].placed?
-    new Set(pieces[pid].cells.map(([dr,dc])=>{
-      // find where this piece is on the board
-      for(let r=0;r<8;r++) for(let c=0;c<7;c++) if(boardPieces[r][c]===pid) return`${r},${c}`;
-      return'';
-    })):new Set();
-
-  // Actually, build set of board coords occupied by selected-placed piece
+  
   const selPlacedCoords=new Set();
   if(pid!==null&&pieces[pid].placed){
     for(let r=0;r<8;r++) for(let c=0;c<7;c++) if(boardPieces[r][c]===pid) selPlacedCoords.add(`${r},${c}`);
@@ -764,7 +866,6 @@ function refreshBoard(previewAr,previewAc){
       const ov=cell.querySelector('.cell-piece-overlay');
       const occupant=boardPieces[r][c];
       
-      // Update target-cell class based on current TARGET_SET
       cell.classList.toggle('target-cell', TARGET_SET.has(`${r},${c}`));
       
       if(occupant!==null){
@@ -773,11 +874,10 @@ function refreshBoard(previewAr,previewAc){
         ov.classList.remove('visible');cell.classList.remove('covered');
       }
       cell.classList.remove('preview-valid','preview-invalid','sel-placed-ring');
-      // Highlight cells of placed+selected piece
       if(selPlacedCoords.has(`${r},${c}`)) cell.classList.add('sel-placed-ring');
     }
   }
-  // Mouse hover preview (no active drag)
+  
   if(!ghost.dragging&&pid!==null&&!pieces[pid].placed&&hoverCell!==null){
     const{r:ar,c:ac}=hoverCell;
     const valid=isValidPlacement(pid,ar,ac);
@@ -787,7 +887,7 @@ function refreshBoard(previewAr,previewAc){
       if(r>=0&&r<8&&c>=0&&c<7&&isActive(r,c)) cellEls[r][c].classList.add(cls);
     }
   }
-  // Drag ghost board preview
+  
   if(ghost.dragging&&previewAr!==undefined&&pid!==null&&!pieces[pid].placed){
     const valid=isValidPlacement(pid,previewAr,previewAc);
     const cls=valid?'preview-valid':'preview-invalid';
@@ -831,30 +931,45 @@ function buildOneTray(containerId,progressId,isMobile){
     }
     wrap.appendChild(mg);
 
-    // Click: select (or deselect if already selected and unplaced)
     wrap.addEventListener('click',e=>{
       if(ghost.dragging) return;
       startTimerIfNeeded();
       if(selectedPieceId===i&&!pieces[i].placed){
-        // deselect
         selectedPieceId=null;placedAnchor=null;ghost.hide();
       } else {
-        // If piece was placed and currently selected, clicking it again deselects
         if(selectedPieceId===i&&pieces[i].placed){selectedPieceId=null;placedAnchor=null;ghost.hide();}
         else{selectPiece(i);}
       }
       buildAllTrays();updateControls();refreshBoard();
     });
 
-    // Mobile: touchstart on tray piece → select + show ghost at board center
     if(isMobile){
       wrap.addEventListener('touchstart',e=>{
         e.preventDefault();
         startTimerIfNeeded();
         selectPiece(i);
         buildAllTrays();updateControls();refreshBoard();
-        // show ghost centered on board; user then touches board to drag
-        ghost.showAtBoard();
+        
+        activeTouchId = e.touches[0].identifier;
+        ghost._buildGrid();
+        const cs = getCellSize();
+        const el = document.getElementById('dragGhost');
+        
+        const touchX = e.touches[0].clientX;
+        const touchY = e.touches[0].clientY;
+        
+        ghost.offsetX = cs * 0.5;
+        ghost.offsetY = cs * 0.5;
+        ghost._startX = touchX;
+        ghost._startY = touchY;
+        ghost._hasMoved = false;
+        
+        el.style.left = (touchX - ghost.offsetX) + 'px';
+        el.style.top = (touchY - ghost.offsetY) + 'px';
+        el.className = 'visible dragging';
+        ghost.visible = true;
+        ghost.dragging = true;
+        document.body.classList.add('dragging');
       },{passive:false});
     }
 
@@ -862,14 +977,14 @@ function buildOneTray(containerId,progressId,isMobile){
   }
   const prog=document.getElementById(progressId);if(prog) prog.textContent=`(${placedCount}/10)`;
 }
+
 function buildAllTrays(){
   buildOneTray('piecesTray','progressText',false);
   buildOneTray('piecesTrayMob','progressTextMob',true);
 }
 
-// Select a piece — if it's placed, pull it off the board first
 function selectPiece(i){
-  if(selectedPieceId===i) return; // already selected, nothing to do
+  if(selectedPieceId===i) return;
   if(pieces[i].placed){
     removePiece(i);
     scheduleSolutionCount();
@@ -880,7 +995,7 @@ function selectPiece(i){
 
 // ─── Controls ─────────────────────────────────────────────────────────────────
 function updateControls(){
-  const has=selectedPieceId!==null; // enabled whether placed or not
+  const has=selectedPieceId!==null;
   ['btnRotate','btnFlip','btnHint'].forEach(id=>{const el=document.getElementById(id);if(el) el.disabled=!has;});
   const info=document.getElementById('selectedInfo');
   if(info){
@@ -891,14 +1006,13 @@ function updateControls(){
   ['mbRotate','mbFlip','mbHint'].forEach(id=>{const el=document.getElementById(id);if(el) el.disabled=!has;});
   const minfo=document.getElementById('mobileSelectedInfo');
   if(minfo){
-    if(!has) minfo.textContent='Tap or drag a piece below';
+    if(!has) minfo.textContent='Tap a piece below, then drag to board';
     else if(pieces[selectedPieceId].placed) minfo.textContent=`Piece ${pieces[selectedPieceId].name} placed \u2022 rotate/flip to adjust`;
-    else minfo.textContent=`Piece ${pieces[selectedPieceId].name} \u2014 drag or tap board to place`;
+    else minfo.textContent=`Drag piece ${pieces[selectedPieceId].name} to board`;
   }
 }
 
 // ─── Rotate / Flip ────────────────────────────────────────────────────────────
-// Compute the board centroid of a placed piece
 function placedCentroid(pid){
   const boardCells=[];
   for(let r=0;r<8;r++) for(let c=0;c<7;c++) if(boardPieces[r][c]===pid) boardCells.push([r,c]);
@@ -908,18 +1022,15 @@ function placedCentroid(pid){
   return{r:avgR,c:avgC};
 }
 
-// Find the anchor that places the new cells' centroid nearest to (targetR, targetC).
-// Searches a radius of a few cells to find the first valid placement.
 function bestAnchorNearCentroid(pid,newCells,targetR,targetC){
   const avgDr=newCells.reduce((s,[r])=>s+r,0)/newCells.length;
   const avgDc=newCells.reduce((s,[,c])=>s+c,0)/newCells.length;
   const baseAr=Math.round(targetR-avgDr);
   const baseAc=Math.round(targetC-avgDc);
-  // Search spiral outward from ideal position
   for(let radius=0;radius<=3;radius++){
     for(let dr=-radius;dr<=radius;dr++){
       for(let dc=-radius;dc<=radius;dc++){
-        if(Math.abs(dr)!==radius&&Math.abs(dc)!==radius) continue; // only perimeter
+        if(Math.abs(dr)!==radius&&Math.abs(dc)!==radius) continue;
         const ar=baseAr+dr,ac=baseAc+dc;
         if(isValidPlacement(pid,ar,ac)) return{ar,ac};
       }
@@ -939,7 +1050,6 @@ function applyTransformToPlaced(pid,transformFn){
     scheduleSolutionCount();
     buildAllTrays();updateControls();refreshBoard();ghost.hide();
   } else {
-    // No valid spot — leave unplaced, show floating ghost
     scheduleSolutionCount();
     buildAllTrays();updateControls();refreshBoard();ghost.showAtBoard();
   }
@@ -992,7 +1102,6 @@ function hideSolvingMsg(){['solvingMsg','mobileSolvingMsg'].forEach(id=>{const e
 function hintSelected(){
   if(selectedPieceId===null) return;
   const pid=selectedPieceId;
-  // If piece is placed, un-place it first for solving
   if(pieces[pid].placed){removePiece(pid);scheduleSolutionCount();}
   showSolvingMsg('Thinking\u2026');
   ['btnHint','mbHint'].forEach(id=>{const el=document.getElementById(id);if(el) el.disabled=true;});
@@ -1011,7 +1120,6 @@ function hintSelected(){
       const cell=cellEls[placement.ar+dr][placement.ac+dc];
       cell.classList.add('hint-flash');setTimeout(()=>cell.classList.remove('hint-flash'),1000);
     }
-    // Keep selected after hint
     buildAllTrays();updateControls();refreshBoard();checkWin();scheduleSolutionCount();
     ghost.hide();
   },30);
@@ -1040,7 +1148,6 @@ function removePiece(pid){
   placedAnchor=null;
 }
 
-// Click on a board cell
 function onCellClick(r,c){
   if(ghost.dragging) return;
   const occ=boardPieces[r][c];
@@ -1048,44 +1155,38 @@ function onCellClick(r,c){
     if(isValidPlacement(selectedPieceId,r,c)){
       recordPlacement(r,c);
       placePiece(selectedPieceId,r,c);
-      // Stay selected
       buildAllTrays();updateControls();refreshBoard();checkWin();scheduleSolutionCount();
-      ghost.hide(); // piece is now placed; ring on board shows it's still selected
+      ghost.hide();
     }
   } else if(occ!==null){
-    // Pick up piece from board
     const prev=selectedPieceId;
     if(prev!==null&&prev!==occ&&pieces[prev].placed){removePiece(prev);}
     removePiece(occ);
     selectedPieceId=occ;placedAnchor=null;
     buildAllTrays();updateControls();refreshBoard();scheduleSolutionCount();
   } else if(selectedPieceId!==null&&pieces[selectedPieceId].placed){
-    // Click empty cell while piece is placed+selected — deselect
     selectedPieceId=null;placedAnchor=null;ghost.hide();
     buildAllTrays();updateControls();refreshBoard();
   }
 }
 
-// Touch on a board cell (pick up placed piece)
 function onCellTouchStart(r,c,e){
   const occ=boardPieces[r][c];
   if(occ!==null){
     e.preventDefault();
     startTimerIfNeeded();
     if(selectedPieceId!==null&&selectedPieceId!==occ&&pieces[selectedPieceId]?.placed) removePiece(selectedPieceId);
-    // Find the top-left anchor of this piece on the board (min row/col among its cells)
     let minR=8,minC=7;
     for(let pr=0;pr<8;pr++) for(let pc=0;pc<7;pc++) if(boardPieces[pr][pc]===occ){if(pr<minR||(pr===minR&&pc<minC)){minR=pr;minC=pc;}}
-    // Save anchor so a failed drop can restore the piece in place
     ghost._savedAr=minR;ghost._savedAc=minC;
     removePiece(occ);
     selectedPieceId=occ;placedAnchor=null;
     buildAllTrays();updateControls();refreshBoard();scheduleSolutionCount();
-    // Position ghost exactly over where the piece was, finger offset preserved
+    activeTouchId = e.touches[0].identifier;
     ghost.showAtCell(minR,minC,e.touches[0].clientX,e.touches[0].clientY);
   } else if(ghost.visible&&!ghost.dragging&&selectedPieceId!==null&&!pieces[selectedPieceId].placed){
-    // Touch empty cell while ghost floating — start drag
     e.preventDefault();
+    activeTouchId = e.touches[0].identifier;
     ghost.startDrag(e.touches[0].clientX,e.touches[0].clientY);
   }
 }
@@ -1114,12 +1215,26 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){selectedPieceId=null;placedAnchor=null;ghost.hide();buildAllTrays();updateControls();refreshBoard();}
 });
 
+// ─── Prevent iOS rubber-banding ───────────────────────────────────────────────
+document.body.addEventListener('touchmove', function(e) {
+  if(document.body.classList.contains('dragging')) {
+    e.preventDefault();
+  }
+}, {passive: false});
+
 // ─── Init ─────────────────────────────────────────────────────────────────────
 (function(){
   currentTargetDate = new Date();
   updateSubtitle();
   updateDatePickerUI();
   initState();buildBoard();buildAllTrays();updateControls();refreshBoard();
+  
+  if(document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(() => {
+      setCellSize();
+      refreshBoard();
+    });
+  }
 })();
 </script>
 </body>
