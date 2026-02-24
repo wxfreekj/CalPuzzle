@@ -144,8 +144,8 @@
   }
   #dragGhost.visible{display:block}
   #dragGhost.floating{opacity:.72}
-  #dragGhost.dragging{opacity:.88}
-  #dragGhost.snapped{opacity:.92}
+  #dragGhost.dragging{opacity:.92}
+  #dragGhost.snapped{opacity:.95}
   #dragGhost.over-valid{filter:drop-shadow(0 6px 18px rgba(50,160,80,.55))}
   #dragGhost.over-invalid{filter:drop-shadow(0 6px 18px rgba(180,50,50,.5))}
   .ghost-grid{display:grid;gap:0}
@@ -261,8 +261,8 @@
     .game-area{gap:0;flex-direction:column;align-items:center}
     .sidebar{display:none}
     .stats-strip{display:grid}
-    .board-container{border-radius:0;border-left:none;border-right:none;padding:0;
-      box-shadow:none;border-top:2px solid var(--board-border);border-bottom:2px solid var(--board-border)}
+    .board-container{border-radius:8px;border:2px solid var(--board-border);padding:0;
+      box-shadow:none;margin:0 auto}
     .mobile-toolbar{display:flex;padding:0 10px}
     .mobile-tray-wrap{display:block;padding:0 10px}
     .stats-strip .stats-grid,.stats-strip{width:100%}
@@ -271,12 +271,12 @@
   
   /* Large phone screens (iPhone Pro Max, Galaxy Ultra) */
   @media(max-width:620px) and (min-width:400px){
-    :root{--cs:min(52px, calc((100vw - 20px) / 7))}
+    :root{--cs:min(44px, calc((100vw - 80px) / 7))}
   }
   
   /* Smaller phones */
   @media(max-width:399px){
-    :root{--cs:calc((100vw - 20px) / 7)}
+    :root{--cs:calc((100vw - 60px) / 7)}
     .mobile-pieces-tray{grid-template-columns:repeat(5,1fr);gap:4px}
     .mobile-pieces-tray .piece-wrapper{min-height:48px;padding:4px 2px}
     .mobile-btns{gap:4px}
@@ -619,23 +619,24 @@ function scheduleSolutionCount(){
 //   When dragging over the board, the ghost SNAPS to the grid so you see
 //   exactly where the piece will land.
 //   Anchor = (boardCellR - grabR, boardCellC - grabC) for placement.
+const FINGER_OFFSET = 50; // pixels above touch point so finger doesn't block view
+
 const ghost={
   visible:false,
   dragging:false,
-  grabR:0, grabC:0,        // grab point within piece (piece-local coords)
+  grabR:0, grabC:0,        // grab point within piece (piece-local coords, integer for snap)
   lastAr:null, lastAc:null, // last computed ANCHOR for placement
   offsetX:0, offsetY:0,     // pixel offset from touch to ghost top-left
   _savedAr:null, _savedAc:null, // for restoring picked-up pieces on cancel
 
-  // Find the top-left occupied cell of the current piece (row-first, then col)
+  // Find the CENTER cell of the current piece (nearest integer for snap math)
   getGrabCell(){
     if(selectedPieceId===null) return[0,0];
     const cells=pieces[selectedPieceId].cells;
-    let bestR=Infinity, bestC=Infinity;
-    for(const[r,c] of cells){
-      if(r<bestR||(r===bestR&&c<bestC)){ bestR=r; bestC=c; }
-    }
-    return[bestR, bestC];
+    const rows=cells.map(([r])=>r), cols=cells.map(([,c])=>c);
+    const centerR=(Math.min(...rows)+Math.max(...rows))/2;
+    const centerC=(Math.min(...cols)+Math.max(...cols))/2;
+    return[Math.round(centerR), Math.round(centerC)];
   },
 
   // Build the visual ghost grid from the current piece shape
@@ -657,7 +658,7 @@ const ghost={
         if(cellSet.has(`${r},${c}`)){
           cell.className='ghost-cell';
           cell.style.background=p.color;
-          cell.style.opacity='0.85';
+          cell.style.opacity='0.92';
         }
         grid.appendChild(cell);
       }
@@ -672,7 +673,7 @@ const ghost={
     this.grabR=gr; this.grabC=gc;
     const cs=getCellSize();
     this.offsetX=(gc+0.5)*cs;
-    this.offsetY=(gr+0.5)*cs;
+    this.offsetY=(gr+0.5)*cs + FINGER_OFFSET;
     // Re-center on board
     this._centerOnBoard();
   },
@@ -685,7 +686,7 @@ const ghost={
     this.grabR=gr; this.grabC=gc;
     const cs=getCellSize();
     this.offsetX=(gc+0.5)*cs;
-    this.offsetY=(gr+0.5)*cs;
+    this.offsetY=(gr+0.5)*cs + FINGER_OFFSET;
     this._centerOnBoard();
     const el=document.getElementById('dragGhost');
     el.className='visible floating';
@@ -714,30 +715,29 @@ const ghost={
     this.grabR=gr; this.grabC=gc;
     const cs=getCellSize();
     this.offsetX=(gc+0.5)*cs;
-    this.offsetY=(gr+0.5)*cs;
+    this.offsetY=(gr+0.5)*cs + FINGER_OFFSET;
     // Position immediately
     this._positionForTouch(clientX,clientY);
     document.getElementById('dragGhost').className='visible dragging';
     document.body.classList.add('dragging');
   },
 
-  // Start dragging a piece picked up from the board (grab at specific piece-cell)
+  // Start dragging a piece picked up from the board
   startDragFromBoard(anchorR,anchorC,touchedR,touchedC,clientX,clientY){
     if(selectedPieceId===null) return;
     this._buildGrid();
-    // The grab point is where they touched relative to the piece anchor
-    this.grabR=touchedR-anchorR;
-    this.grabC=touchedC-anchorC;
+    // Use center of piece as grab point for consistent feel
+    const[gr,gc]=this.getGrabCell();
+    this.grabR=gr; this.grabC=gc;
     const cs=getCellSize();
-    this.offsetX=(this.grabC+0.5)*cs;
-    this.offsetY=(this.grabR+0.5)*cs;
+    this.offsetX=(gc+0.5)*cs;
+    this.offsetY=(gr+0.5)*cs + FINGER_OFFSET;
     this._savedAr=anchorR;
     this._savedAc=anchorC;
-    // Position ghost snapped to where piece was
-    const rect=getBoardRect();
+    // Position ghost at touch point with offset (piece above finger)
     const el=document.getElementById('dragGhost');
-    el.style.left=(rect.left+anchorC*cs)+'px';
-    el.style.top=(rect.top+anchorR*cs)+'px';
+    el.style.left=(clientX-this.offsetX)+'px';
+    el.style.top=(clientY-this.offsetY)+'px';
     el.className='visible dragging';
     this.visible=true; this.dragging=true;
     this.lastAr=anchorR; this.lastAc=anchorC;
@@ -754,12 +754,12 @@ const ghost={
       const ar=raw.r-this.grabR;
       const ac=raw.c-this.grabC;
       this.lastAr=ar; this.lastAc=ac;
-      // SNAP ghost to exact grid position
+      // SNAP ghost to exact grid position, shifted up so finger doesn't block
       const cs=getCellSize();
       const rect=getBoardRect();
       const el=document.getElementById('dragGhost');
       el.style.left=(rect.left+ac*cs)+'px';
-      el.style.top=(rect.top+ar*cs)+'px';
+      el.style.top=(rect.top+ar*cs - FINGER_OFFSET)+'px';
       const valid=isValidPlacement(selectedPieceId,ar,ac);
       el.className='visible snapped '+(valid?'over-valid':'over-invalid');
       refreshBoard(ar,ac);
@@ -934,15 +934,8 @@ function refreshBoard(previewAr,previewAc){
     }
   }
   
-  // Drag preview (uses anchor coordinates, already adjusted for grab offset)
-  if(ghost.dragging&&previewAr!==undefined&&previewAr!==null&&pid!==null&&!pieces[pid].placed){
-    const valid=isValidPlacement(pid,previewAr,previewAc);
-    const cls=valid?'preview-valid':'preview-invalid';
-    for(const[dr,dc] of pieces[pid].cells){
-      const r=previewAr+dr,c=previewAc+dc;
-      if(r>=0&&r<8&&c>=0&&c<7&&isActive(r,c)) cellEls[r][c].classList.add(cls);
-    }
-  }
+  // Drag preview — only show ghost piece, no board cell highlights during drag
+  // (ghost drop-shadow color indicates valid/invalid)
 }
 
 // ─── Tray builder ─────────────────────────────────────────────────────────────
