@@ -329,7 +329,7 @@ function scheduleSolutionCount(){const pl=pieces.filter(p=>p.placed).length;if(p
 function isValidPlacement(pid,ar,ac){for(const[dr,dc] of pieces[pid].cells){const r=ar+dr,c=ac+dc;if(r<0||r>=8||c<0||c>=7||!isActive(r,c)||boardPieces[r][c]!==null)return false;}return true;}
 function isOverlapping(pid,ar,ac){let any=false,allOn=true;for(const[dr,dc] of pieces[pid].cells){const r=ar+dr,c=ac+dc;if(r<0||r>=8||c<0||c>=7||!isActive(r,c)){allOn=false;break;}if(boardPieces[r][c]!==null)any=true;}return allOn&&any;}
 
-const FINGER_OFFSET=55;
+const FINGER_OFFSET=40;
 const ghost={
   visible:false,dragging:false,grabR:0,grabC:0,lastAr:null,lastAc:null,offsetX:0,offsetY:0,_savedAr:null,_savedAc:null,
   getGrabCell(){if(selectedPieceId===null)return[0,0];const c=pieces[selectedPieceId].cells,rs=c.map(([r])=>r),cs=c.map(([,c])=>c);return[Math.round((Math.min(...rs)+Math.max(...rs))/2),Math.round((Math.min(...cs)+Math.max(...cs))/2)];},
@@ -338,31 +338,57 @@ const ghost={
   refresh(){if(!this.visible||selectedPieceId===null)return;this._buildGrid();this._calcOffset();this._centerOnBoard();},
   showAtBoard(){if(selectedPieceId===null)return;this._buildGrid();this._calcOffset();this._centerOnBoard();document.getElementById('dragGhost').className='visible floating';this.visible=true;this.dragging=false;this.lastAr=null;this.lastAc=null;},
   _centerOnBoard(){const cs=getCellSize(),p=pieces[selectedPieceId],rs=p.cells.map(([r])=>r),cl=p.cells.map(([,c])=>c),gw=(Math.max(...cl)+1)*cs,gh=(Math.max(...rs)+1)*cs,rect=getBoardRect(),el=document.getElementById('dragGhost');el.style.left=(rect.left+(rect.width-gw)/2)+'px';el.style.top=(rect.top+(rect.height-gh)/2)+'px';},
-  startDrag(cx,cy){if(!this.visible||selectedPieceId===null)return;this.dragging=true;this._calcOffset();const el=document.getElementById('dragGhost');el.style.left=(cx-this.offsetX)+'px';el.style.top=(cy-this.offsetY)+'px';el.className='visible dragging';document.body.classList.add('dragging');},
-  startDragFromBoard(aR,aC,tR,tC,cx,cy){if(selectedPieceId===null)return;this._buildGrid();this._calcOffset();this._savedAr=aR;this._savedAc=aC;const el=document.getElementById('dragGhost');el.style.left=(cx-this.offsetX)+'px';el.style.top=(cy-this.offsetY)+'px';el.className='visible dragging';this.visible=true;this.dragging=true;this.lastAr=null;this.lastAc=null;document.body.classList.add('dragging');},
+  startDrag(cx,cy){if(!this.visible||selectedPieceId===null)return;this.dragging=true;this._calcOffset();document.getElementById('dragGhost').className='visible dragging';document.body.classList.add('dragging');this.move(cx,cy);},
+  startDragFromBoard(aR,aC,tR,tC,cx,cy){if(selectedPieceId===null)return;this._buildGrid();this._calcOffset();this._savedAr=aR;this._savedAc=aC;document.getElementById('dragGhost').className='visible dragging';this.visible=true;this.dragging=true;this.lastAr=null;this.lastAc=null;document.body.classList.add('dragging');this.move(cx,cy);},
   move(cx,cy){
     if(!this.dragging)return;
-    // Cell detection at the ghost's VISUAL center, not at the finger
-    const logY=cy-FINGER_OFFSET, cell=this._cellFromPoint(cx,logY);
-    if(cell.r!==null){
-      const ar=cell.r-this.grabR,ac=cell.c-this.grabC;
-      this.lastAr=ar;this.lastAc=ac;
-      const cs=getCellSize(),rect=getBoardRect(),el=document.getElementById('dragGhost');
-      // Ghost snaps to grid — what you see is where it places
-      el.style.left=(rect.left+ac*cs)+'px';el.style.top=(rect.top+ar*cs)+'px';
-      const valid=isValidPlacement(selectedPieceId,ar,ac),overlap=!valid&&isOverlapping(selectedPieceId,ar,ac);
-      el.className='visible snapped '+(valid?'over-valid':'over-invalid');
-      this._setGhostStyle(valid?'normal':overlap?'overlap':'normal');
-      refreshBoard();
-    } else {
-      this.lastAr=null;this.lastAc=null;
-      const el=document.getElementById('dragGhost');
-      el.style.left=(cx-this.offsetX)+'px';el.style.top=(cy-this.offsetY)+'px';
-      el.className='visible dragging';this._setGhostStyle('normal');refreshBoard();
+    const rect=getBoardRect(),cs=getCellSize();
+    // The "intended" position: above the finger by FINGER_OFFSET
+    const intendedX=cx, intendedY=cy-FINGER_OFFSET;
+    // Clamp to board bounds with generous buffer (3 cells) so we always snap near the board
+    const buf=cs*3;
+    const nearBoard=intendedX>rect.left-buf&&intendedX<rect.right+buf&&
+                    intendedY>rect.top-buf&&intendedY<rect.bottom+buf;
+    if(nearBoard){
+      // Clamp to board edges for cell detection
+      const clampX=Math.max(rect.left,Math.min(rect.right-1,intendedX));
+      const clampY=Math.max(rect.top,Math.min(rect.bottom-1,intendedY));
+      const cell=this._cellFromPoint(clampX,clampY);
+      if(cell.r!==null){
+        const ar=cell.r-this.grabR,ac=cell.c-this.grabC;
+        this.lastAr=ar;this.lastAc=ac;
+        const el=document.getElementById('dragGhost');
+        el.style.left=(rect.left+ac*cs)+'px';el.style.top=(rect.top+ar*cs)+'px';
+        const valid=isValidPlacement(selectedPieceId,ar,ac),overlap=!valid&&isOverlapping(selectedPieceId,ar,ac);
+        el.className='visible snapped '+(valid?'over-valid':'over-invalid');
+        this._setGhostStyle(valid?'normal':overlap?'overlap':'normal');
+        refreshBoard();return;
+      }
     }
+    // Too far from board — free follow (with FINGER_OFFSET)
+    this.lastAr=null;this.lastAc=null;
+    const el=document.getElementById('dragGhost');
+    el.style.left=(cx-this.offsetX)+'px';el.style.top=(cy-this.offsetY)+'px';
+    el.className='visible dragging';this._setGhostStyle('normal');refreshBoard();
   },
   endDrag(){if(!this.dragging)return;this.dragging=false;document.body.classList.remove('dragging');this._setGhostStyle('normal');const ar=this.lastAr,ac=this.lastAc;if(ar!==null&&selectedPieceId!==null&&!pieces[selectedPieceId].placed&&isValidPlacement(selectedPieceId,ar,ac)){recordPlacement(ar,ac);placePiece(selectedPieceId,ar,ac);this.hide();buildAllTrays();updateControls();refreshBoard();checkWin();scheduleSolutionCount();}else if(this._savedAr!==null&&selectedPieceId!==null&&!pieces[selectedPieceId].placed){this._savedAr=null;this._savedAc=null;this.showAtBoard();buildAllTrays();updateControls();refreshBoard();scheduleSolutionCount();}else{this.showAtBoard();refreshBoard();}},
-  _cellFromPoint(x,y){const rect=getBoardRect(),cs=getCellSize(),col=Math.round((x-rect.left)/cs-.5),row=Math.round((y-rect.top)/cs-.5);if(row>=0&&row<8&&col>=0&&col<7&&isActive(row,col))return{r:row,c:col};for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){const rr=row+dr,cc=col+dc;if(rr>=0&&rr<8&&cc>=0&&cc<7&&isActive(rr,cc))return{r:rr,c:cc};}return{r:null,c:null};},
+  // Math-based cell detection with clamping to valid cells
+  _cellFromPoint(x,y){
+    const rect=getBoardRect(),cs=getCellSize();
+    const col=Math.round((x-rect.left)/cs-.5),row=Math.round((y-rect.top)/cs-.5);
+    // Clamp to grid bounds
+    const cr=Math.max(0,Math.min(7,row)),cc=Math.max(0,Math.min(6,col));
+    if(isActive(cr,cc))return{r:cr,c:cc};
+    // Search outward for nearest active cell (spiral search up to 3 cells)
+    let best=null,bestDist=Infinity;
+    for(let dr=-3;dr<=3;dr++)for(let dc=-3;dc<=3;dc++){
+      const rr=cr+dr,rc=cc+dc;
+      if(rr>=0&&rr<8&&rc>=0&&rc<7&&isActive(rr,rc)){
+        const d=dr*dr+dc*dc;if(d<bestDist){bestDist=d;best={r:rr,c:rc};}
+      }
+    }
+    return best||{r:null,c:null};
+  },
   _setGhostStyle(mode){const g=document.getElementById('ghostGrid');if(!g||selectedPieceId===null)return;const p=pieces[selectedPieceId];g.querySelectorAll('.ghost-cell').forEach(c=>{if(mode==='overlap'){c.style.background='#1a1a1a';c.style.outline='2.5px solid #cc3333';c.style.outlineOffset='-2.5px';c.style.opacity='0.88';}else{c.style.background=p.color;c.style.outline='none';c.style.outlineOffset='';c.style.opacity='0.92';}});},
   hide(){document.getElementById('dragGhost').className='';this.visible=false;this.dragging=false;this.lastAr=null;this.lastAc=null;this._savedAr=null;this._savedAc=null;document.body.classList.remove('dragging');}
 };
