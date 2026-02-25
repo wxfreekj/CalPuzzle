@@ -15,28 +15,16 @@
     --cell-text:#3A2A10;--cell-border:#C8AA76;
     --selected-ring:#D4601A;--target-color:#D4B017;
     --cs:60px;
-    /* Safe area insets for iPhone notch/Dynamic Island */
     --safe-top:env(safe-area-inset-top, 0px);
     --safe-bottom:env(safe-area-inset-bottom, 0px);
     --safe-left:env(safe-area-inset-left, 0px);
     --safe-right:env(safe-area-inset-right, 0px);
   }
-  *{
-    box-sizing:border-box;margin:0;padding:0;
-    -webkit-tap-highlight-color:transparent;
-    -webkit-touch-callout:none;
-  }
-  html{
-    overscroll-behavior:none;
-    overflow:hidden;
-    position:fixed;
-    width:100%;
-    height:100%;
-  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none}
+  html{overscroll-behavior:none;overflow:hidden;position:fixed;width:100%;height:100%}
   body{
     background:var(--bg);font-family:'Lora',Georgia,serif;
-    min-height:100%;
-    height:100%;
+    min-height:100%;height:100%;
     display:flex;flex-direction:column;align-items:center;
     padding:14px 10px 32px;
     padding-top:calc(14px + var(--safe-top));
@@ -45,23 +33,14 @@
     padding-right:calc(10px + var(--safe-right));
     background-image:radial-gradient(ellipse at 20% 10%,rgba(200,160,80,.08) 0%,transparent 60%),
                      radial-gradient(ellipse at 80% 90%,rgba(160,100,40,.07) 0%,transparent 60%);
-    overscroll-behavior:none;
-    overflow-y:auto;
-    overflow-x:hidden;
-    -webkit-overflow-scrolling:touch;
-    -webkit-user-select:none;
-    user-select:none;
+    overscroll-behavior:none;overflow-y:auto;overflow-x:hidden;
+    -webkit-overflow-scrolling:touch;-webkit-user-select:none;user-select:none;
   }
-  /* Prevent body scroll during drag */
-  body.dragging{
-    overflow:hidden;
-    touch-action:none;
-  }
+  body.dragging{overflow:hidden;touch-action:none}
   h1{font-family:'Playfair Display',serif;color:#3A2A10;font-size:clamp(1.3rem,5vw,2.1rem);
     margin-bottom:2px;letter-spacing:.03em;text-shadow:0 1px 3px rgba(100,60,10,.12);text-align:center}
   .subtitle{color:#7A5C30;font-size:clamp(.72rem,.9rem,1rem);margin-bottom:8px;font-style:italic;text-align:center;padding:0 8px}
   
-  /* Date picker */
   .date-picker-row{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:12px;flex-wrap:wrap}
   .date-btn{
     background:rgba(255,255,255,.5);border:1.5px solid #C8AA76;border-radius:6px;
@@ -71,7 +50,7 @@
   }
   .date-btn:hover{background:rgba(139,111,71,.12);border-color:var(--board-border)}
   .date-btn:active{transform:scale(.97);background:rgba(139,111,71,.2)}
-  .date-btn.active{border-color:var(--selected-ring);background:rgba(212,96,26,.1);box-shadow:0 0 0 1px rgba(212,96,26,.2)}
+  .date-btn.active{border-color:var(--selected-ring);background:rgba(212,96,26,.1)}
   .date-btn svg{width:16px;height:16px;stroke:#7A5C30;stroke-width:2;fill:none}
   .date-input-wrap{position:relative}
   .date-input{
@@ -81,15 +60,10 @@
     min-height:44px;touch-action:manipulation;
   }
   .date-input:focus{outline:none;border-color:var(--selected-ring)}
-  .date-input::-webkit-calendar-picker-indicator{
-    cursor:pointer;opacity:.6;
-    padding:4px;
-    min-width:20px;min-height:20px;
-  }
+  .date-input::-webkit-calendar-picker-indicator{cursor:pointer;opacity:.6;padding:4px;min-width:20px;min-height:20px}
   
   .game-area{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap;justify-content:center;width:100%}
 
-  /* Stats */
   .stats-strip{display:none;width:100%;gap:6px;margin-bottom:10px}
   .stats-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;text-align:center}
   .stat-box{background:rgba(255,255,255,.5);border:1px solid #C8AA76;border-radius:6px;padding:8px 4px 6px}
@@ -99,23 +73,17 @@
   .stat-value.ticking{color:#2A6B4A}
   .stat-value.sol-low{color:#B55020}
 
-  /* Board */
   .board-container{
     background:var(--board-bg);border:3px solid var(--board-border);border-radius:10px;padding:10px;
-    box-shadow:0 8px 28px rgba(60,35,10,.22),inset 0 1px 0 rgba(255,255,255,.3);flex-shrink:0;
-    touch-action:none;
+    box-shadow:0 8px 28px rgba(60,35,10,.22),inset 0 1px 0 rgba(255,255,255,.3);flex-shrink:0;touch-action:none;
   }
-  .board{
-    display:grid;grid-template-columns:repeat(7,var(--cs));grid-template-rows:repeat(8,var(--cs));gap:0;
-    touch-action:none;
-  }
+  .board{display:grid;grid-template-columns:repeat(7,var(--cs));grid-template-rows:repeat(8,var(--cs));gap:0;touch-action:none}
   .cell{
     width:var(--cs);height:var(--cs);border:1px solid var(--cell-border);
     background:#fff;display:flex;align-items:center;justify-content:center;
-    font-size:calc(var(--cs)*.2);font-weight:500;color:var(--cell-text);cursor:pointer;
+    font-size:calc(var(--cs)*.22);font-weight:500;color:var(--cell-text);cursor:pointer;
     transition:background .12s;user-select:none;position:relative;overflow:hidden;
-    touch-action:none;
-    -webkit-user-select:none;
+    touch-action:none;-webkit-user-select:none;
   }
   .cell.target-cell{box-shadow:inset 0 0 0 2.5px var(--target-color);animation:tp 2.4s ease-in-out infinite}
   @keyframes tp{
@@ -131,17 +99,10 @@
   .cell-label{position:relative;z-index:2;pointer-events:none;font-weight:600}
   .cell.hint-flash .cell-piece-overlay{animation:hintFlash .9s ease-out forwards}
   @keyframes hintFlash{0%{opacity:1;filter:brightness(2.2)}40%{opacity:1;filter:brightness(1.5)}100%{opacity:.82;filter:brightness(1)}}
-
-  /* Selected-on-board ring: placed but still selected */
   .cell.sel-placed-ring{box-shadow:inset 0 0 0 3px var(--selected-ring)!important;z-index:3}
 
-  /* Drag ghost */
-  #dragGhost{
-    position:fixed;pointer-events:none;z-index:9999;
-    display:none;transform-origin:top left;
-    filter:drop-shadow(0 6px 18px rgba(0,0,0,.38));
-    will-change:transform,left,top;
-  }
+  #dragGhost{position:fixed;pointer-events:none;z-index:9999;display:none;transform-origin:top left;
+    filter:drop-shadow(0 6px 18px rgba(0,0,0,.38));will-change:transform,left,top}
   #dragGhost.visible{display:block}
   #dragGhost.floating{opacity:.72}
   #dragGhost.dragging{opacity:.92}
@@ -151,63 +112,39 @@
   .ghost-grid{display:grid;gap:0}
   .ghost-cell{border-radius:2px}
 
-  /* Sidebar */
   .sidebar{display:flex;flex-direction:column;gap:12px;width:220px}
-  .panel{background:var(--board-bg);border:2px solid var(--board-border);border-radius:8px;
-    padding:12px 14px;box-shadow:0 4px 14px rgba(60,35,10,.14)}
-  .panel h3{font-family:'Playfair Display',serif;font-size:.95rem;color:#5C3A18;
-    margin-bottom:10px;border-bottom:1px solid #C8AA76;padding-bottom:6px;letter-spacing:.02em}
+  .panel{background:var(--board-bg);border:2px solid var(--board-border);border-radius:8px;padding:12px 14px;box-shadow:0 4px 14px rgba(60,35,10,.14)}
+  .panel h3{font-family:'Playfair Display',serif;font-size:.95rem;color:#5C3A18;margin-bottom:10px;border-bottom:1px solid #C8AA76;padding-bottom:6px}
   .pieces-tray{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-  .piece-wrapper{
-    display:flex;flex-direction:column;align-items:center;justify-content:center;
-    gap:3px;cursor:pointer;padding:6px 4px;border:2px solid transparent;border-radius:6px;
-    transition:all .15s;min-height:56px;background:rgba(255,255,255,.35);
-    touch-action:manipulation;
-  }
+  .piece-wrapper{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;padding:6px 4px;border:2px solid transparent;border-radius:6px;transition:all .15s;min-height:56px;background:rgba(255,255,255,.35);touch-action:manipulation}
   .piece-wrapper:hover:not(.placed-away){background:rgba(139,111,71,.12);border-color:var(--board-border)}
   .piece-wrapper.selected{border-color:var(--selected-ring);background:rgba(212,96,26,.1);box-shadow:0 0 0 1px rgba(212,96,26,.3)}
   .piece-wrapper.placed-away{opacity:.28;cursor:default;filter:grayscale(.4)}
   .piece-wrapper.placed-selected{opacity:.7;border-color:var(--selected-ring);background:rgba(212,96,26,.08)}
   .piece-mini{display:grid;gap:0}
   .piece-mini-cell{width:13px;height:13px;border-radius:0;border:none}
-
   .ctrl-row{display:flex;gap:6px;margin-bottom:8px}
-  .btn{
-    background:#6B4820;color:#FAF7EF;border:none;border-radius:5px;padding:8px 10px;
-    font-family:'Lora',serif;font-size:12px;cursor:pointer;transition:background .13s,transform .08s;
-    flex:1;display:flex;align-items:center;justify-content:center;gap:4px;
-    min-height:44px;touch-action:manipulation;
-  }
+  .btn{background:#6B4820;color:#FAF7EF;border:none;border-radius:5px;padding:8px 10px;font-family:'Lora',serif;font-size:12px;cursor:pointer;transition:background .13s,transform .08s;flex:1;display:flex;align-items:center;justify-content:center;gap:4px;min-height:44px;touch-action:manipulation}
   .btn:hover{background:#8B6A3A;transform:translateY(-1px)}
   .btn:active{background:#4A3010;transform:none}
   .btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
   .btn-hint{background:#2A6B4A;color:#FAF7EF}
   .btn-hint:hover{background:#3A8A60}
   .btn-hint:disabled{opacity:.4;cursor:not-allowed;transform:none}
-  .btn-reset{background:transparent;color:#7A5230;border:2px solid #C8AA76;font-size:12px;
-    width:100%;padding:7px;margin-top:2px;flex:none;min-height:44px}
+  .btn-reset{background:transparent;color:#7A5230;border:2px solid #C8AA76;font-size:12px;width:100%;padding:7px;margin-top:2px;flex:none;min-height:44px}
   .btn-reset:hover{background:rgba(100,60,20,.08)}
-  .kbd{display:inline-block;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);
-    border-radius:3px;padding:0 4px;font-size:10px;font-family:monospace;line-height:1.4}
-  .selected-info{font-size:11.5px;color:#5C3A18;text-align:center;font-style:italic;
-    min-height:32px;display:flex;align-items:center;justify-content:center;margin-bottom:8px;line-height:1.4}
+  .kbd{display:inline-block;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);border-radius:3px;padding:0 4px;font-size:10px;font-family:monospace;line-height:1.4}
+  .selected-info{font-size:11.5px;color:#5C3A18;text-align:center;font-style:italic;min-height:32px;display:flex;align-items:center;justify-content:center;margin-bottom:8px;line-height:1.4}
   .instructions{font-size:11.5px;color:#5C3A18;line-height:1.7}
   .instructions li{margin-left:14px}
   .solving-msg{display:none;font-size:11px;color:#7A5230;text-align:center;font-style:italic;margin-top:4px}
   .solving-msg.show{display:block}
 
-  /* Mobile toolbar */
-  .mobile-toolbar{display:none;width:100%;flex-direction:column;gap:8px;margin-top:10px}
-  .mobile-selected{font-size:12px;color:#5C3A18;text-align:center;font-style:italic;min-height:20px;line-height:1.4;padding:2px 0}
-  .mobile-btns{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px}
+  .mobile-toolbar{display:none;width:100%;flex-direction:column;gap:3px;margin-top:3px}
+  .mobile-selected{font-size:11px;color:#5C3A18;text-align:center;font-style:italic;min-height:14px;line-height:1.2;padding:1px 0}
+  .mobile-btns{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:4px}
   .mobile-btns.has-remove{grid-template-columns:1fr 1fr 1fr 1fr 1fr}
-  .mobile-btn{
-    background:#6B4820;color:#FAF7EF;border:none;border-radius:8px;
-    padding:0;height:52px;font-family:'Lora',serif;font-size:11px;cursor:pointer;
-    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
-    touch-action:manipulation;transition:background .1s,transform .08s;
-    min-width:48px;
-  }
+  .mobile-btn{background:#6B4820;color:#FAF7EF;border:none;border-radius:8px;padding:0;height:40px;font-family:'Lora',serif;font-size:11px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;touch-action:manipulation;transition:background .1s,transform .08s;min-width:40px}
   .mobile-btn:active{background:#4A3010;transform:scale(.95)}
   .mobile-btn:disabled{opacity:.35;cursor:not-allowed;transform:none}
   .mobile-btn.green{background:#2A6B4A}
@@ -216,33 +153,21 @@
   .mobile-btn.red:active{background:#7A2020}
   .mobile-btn.outline{background:transparent;color:#7A5230;border:2px solid #C8AA76}
   .mobile-btn.outline:active{background:rgba(100,60,20,.12)}
-  .mobile-btn-icon{font-size:20px;line-height:1}
-  .mobile-btn-label{font-size:9px;letter-spacing:.03em;text-transform:uppercase;line-height:1}
+  .mobile-btn-icon{font-size:17px;line-height:1}
+  .mobile-btn-label{font-size:8px;letter-spacing:.03em;text-transform:uppercase;line-height:1}
   .mobile-solving{font-size:11px;color:#7A5230;text-align:center;font-style:italic;display:none;padding:2px 0}
   .mobile-solving.show{display:block}
 
-  /* Mobile piece tray */
-  .mobile-tray-wrap{display:none;width:100%;margin-top:8px}
-  .mobile-tray-wrap .panel{padding:10px}
-  .mobile-pieces-tray{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
-  .mobile-pieces-tray .piece-wrapper{
-    min-height:52px;padding:6px 2px;
-    touch-action:none;
-  }
+  .mobile-tray-wrap{display:none;width:100%;margin-top:3px}
+  .mobile-tray-wrap .panel{padding:5px 10px}
+  .mobile-tray-wrap .panel h3{margin-bottom:3px;padding-bottom:2px;font-size:.82rem}
+  .mobile-pieces-tray{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+  .mobile-pieces-tray .piece-wrapper{min-height:42px;padding:4px 2px;touch-action:none}
 
-  /* Win overlay */
-  .win-overlay{position:fixed;inset:0;background:rgba(30,18,6,.72);display:none;
-    align-items:center;justify-content:center;z-index:1000;animation:fadeIn .3s ease;
-    padding:16px;
-    padding-top:calc(16px + var(--safe-top));
-    padding-bottom:calc(16px + var(--safe-bottom));
-  }
+  .win-overlay{position:fixed;inset:0;background:rgba(30,18,6,.72);display:none;align-items:center;justify-content:center;z-index:1000;animation:fadeIn .3s ease;padding:16px;padding-top:calc(16px + var(--safe-top));padding-bottom:calc(16px + var(--safe-bottom))}
   .win-overlay.show{display:flex}
   @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-  .win-box{background:#FBF8F0;border:3px solid #7A5C30;border-radius:14px;
-    padding:clamp(24px,5vw,40px) clamp(20px,6vw,46px);
-    text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5);max-width:380px;width:100%;
-    animation:popIn .35s cubic-bezier(.34,1.56,.64,1)}
+  .win-box{background:#FBF8F0;border:3px solid #7A5C30;border-radius:14px;padding:clamp(24px,5vw,40px) clamp(20px,6vw,46px);text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5);max-width:380px;width:100%;animation:popIn .35s cubic-bezier(.34,1.56,.64,1)}
   @keyframes popIn{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
   .win-box h2{font-family:'Playfair Display',serif;font-size:clamp(1.4rem,6vw,2rem);color:#3A2A10;margin-bottom:8px}
   .win-box p{color:#7A5230;font-style:italic;font-size:.9rem;margin-bottom:6px;line-height:1.6}
@@ -252,95 +177,72 @@
   .win-stat-val{font-family:'Playfair Display',serif;font-size:1.2rem;color:#3A2A10;font-weight:600}
   .win-stat-lbl{font-size:10px;color:#9A7040;text-transform:uppercase;letter-spacing:.05em}
 
-  /* Mobile breakpoint */
   @media(max-width:620px){
-    body{padding:10px 0 20px;padding-top:calc(10px + var(--safe-top));padding-bottom:calc(20px + var(--safe-bottom))}
-    h1{font-size:1.4rem}
-    .subtitle{font-size:.75rem;margin-bottom:6px}
-    .date-picker-row{margin-bottom:8px;padding:0 10px}
+    body{padding:3px 0 2px;padding-top:calc(3px + var(--safe-top));padding-bottom:calc(2px + var(--safe-bottom))}
+    h1{font-size:1.1rem;margin-bottom:0}
+    .subtitle{font-size:.65rem;margin-bottom:2px}
+    .date-picker-row{margin-bottom:3px;padding:0 10px;gap:5px}
+    .date-btn{padding:3px 8px;min-height:30px;font-size:11px}
+    .date-btn svg{width:14px;height:14px}
+    .date-input{min-height:30px;padding:3px 8px;font-size:12px;min-width:130px}
     .game-area{gap:0;flex-direction:column;align-items:center}
     .sidebar{display:none}
-    .stats-strip{display:grid}
-    .board-container{border-radius:8px;border:2px solid var(--board-border);padding:0;
-      box-shadow:none;margin:0 auto}
+    .stats-strip{display:grid;margin-bottom:3px;padding:0 12px}
+    .stats-strip .stats-grid,.stats-strip{width:100%}
+    .stat-box{padding:3px 4px 2px}
+    .stat-icon{font-size:11px;margin-bottom:0}
+    .stat-value{font-size:.85rem;min-height:1em;margin-bottom:0}
+    .stat-label{font-size:7px}
+    .board-container{border-radius:8px;border:2px solid var(--board-border);padding:0;box-shadow:none;margin:0 auto}
     .mobile-toolbar{display:flex;padding:0 10px}
     .mobile-tray-wrap{display:block;padding:0 10px}
-    .stats-strip .stats-grid,.stats-strip{width:100%}
-    .stats-strip{padding:0 12px}
   }
-  
-  /* Large phone screens (iPhone Pro Max, Galaxy Ultra) */
   @media(max-width:620px) and (min-width:400px){
-    :root{--cs:min(44px, calc((100vw - 80px) / 7))}
+    :root{--cs:min(42px, calc((100vw - 80px) / 7))}
   }
-  
-  /* Smaller phones */
   @media(max-width:399px){
     :root{--cs:calc((100vw - 60px) / 7)}
-    .mobile-pieces-tray{grid-template-columns:repeat(5,1fr);gap:4px}
-    .mobile-pieces-tray .piece-wrapper{min-height:48px;padding:4px 2px}
-    .mobile-btns{gap:4px}
-    .mobile-btn{height:48px}
+    .mobile-pieces-tray{grid-template-columns:repeat(5,1fr);gap:3px}
+    .mobile-pieces-tray .piece-wrapper{min-height:38px;padding:3px 2px}
+    .mobile-btns{gap:3px}
+    .mobile-btn{height:36px}
   }
 </style>
 </head>
 <body>
-
 <div id="dragGhost"><div class="ghost-grid" id="ghostGrid"></div></div>
-
-<div class="win-overlay" id="winOverlay">
-  <div class="win-box">
-    <h2>&#127881; Puzzle Solved!</h2>
-    <div class="win-date" id="winDate"></div>
-    <p>You've uncovered the date. Brilliant!</p>
-    <div class="win-summary">
-      <div class="win-stat"><div class="win-stat-val" id="winTime">—</div><div class="win-stat-lbl">Time</div></div>
-      <div class="win-stat"><div class="win-stat-val" id="winMoves">—</div><div class="win-stat-lbl">Moves</div></div>
-    </div>
-    <button class="btn" style="margin:auto;max-width:160px;padding:10px 20px;font-size:14px;flex:none;min-height:48px" onclick="closeWin()">Keep Playing</button>
+<div class="win-overlay" id="winOverlay"><div class="win-box">
+  <h2>&#127881; Puzzle Solved!</h2><div class="win-date" id="winDate"></div>
+  <p>You've uncovered the date. Brilliant!</p>
+  <div class="win-summary">
+    <div class="win-stat"><div class="win-stat-val" id="winTime">&mdash;</div><div class="win-stat-lbl">Time</div></div>
+    <div class="win-stat"><div class="win-stat-val" id="winMoves">&mdash;</div><div class="win-stat-lbl">Moves</div></div>
   </div>
-</div>
+  <button class="btn" style="margin:auto;max-width:160px;padding:10px 20px;font-size:14px;flex:none;min-height:48px" onclick="closeWin()">Keep Playing</button>
+</div></div>
 
 <h1>Calendar Puzzle</h1>
 <div class="subtitle" id="subtitleEl">Place all pieces to reveal today's date</div>
-
 <div class="date-picker-row">
-  <button class="date-btn" id="btnToday" onclick="setToday()">
-    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2m-4.2-5.8 1.4-1.4M4.8 19.2l1.4-1.4m0-11.6L4.8 4.8m14.4 14.4-1.4-1.4"/></svg>
-    Today
-  </button>
-  <div class="date-input-wrap">
-    <input type="date" class="date-input" id="dateInput" onchange="onDateChange()">
-  </div>
+  <button class="date-btn" id="btnToday" onclick="setToday()"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2m-4.2-5.8 1.4-1.4M4.8 19.2l1.4-1.4m0-11.6L4.8 4.8m14.4 14.4-1.4-1.4"/></svg>Today</button>
+  <div class="date-input-wrap"><input type="date" class="date-input" id="dateInput" onchange="onDateChange()"></div>
 </div>
-
-<div class="stats-strip">
-  <div class="stats-grid" style="width:100%">
-    <div class="stat-box"><div class="stat-icon">&#9201;</div><div class="stat-value" id="statTimeMob">0:00</div><div class="stat-label">Time</div></div>
-    <div class="stat-box"><div class="stat-icon">&#127919;</div><div class="stat-value" id="statMovesMob">0</div><div class="stat-label">Moves</div></div>
-    <div class="stat-box"><div class="stat-icon">&#128272;</div><div class="stat-value" id="statSolsMob">—</div><div class="stat-label">Solutions</div></div>
-  </div>
-</div>
+<div class="stats-strip"><div class="stats-grid" style="width:100%">
+  <div class="stat-box"><div class="stat-icon">&#9201;</div><div class="stat-value" id="statTimeMob">0:00</div><div class="stat-label">Time</div></div>
+  <div class="stat-box"><div class="stat-icon">&#127919;</div><div class="stat-value" id="statMovesMob">0</div><div class="stat-label">Moves</div></div>
+  <div class="stat-box"><div class="stat-icon">&#128272;</div><div class="stat-value" id="statSolsMob">&mdash;</div><div class="stat-label">Solutions</div></div>
+</div></div>
 
 <div class="game-area">
-  <div class="board-container" id="boardContainer">
-    <div class="board" id="board"></div>
-  </div>
+  <div class="board-container" id="boardContainer"><div class="board" id="board"></div></div>
   <div class="sidebar">
-    <div class="panel">
-      <h3>Progress</h3>
-      <div class="stats-grid">
-        <div class="stat-box"><div class="stat-icon">&#9201;</div><div class="stat-value" id="statTime">0:00</div><div class="stat-label">Time</div></div>
-        <div class="stat-box"><div class="stat-icon">&#127919;</div><div class="stat-value" id="statMoves">0</div><div class="stat-label">Moves</div></div>
-        <div class="stat-box"><div class="stat-icon">&#128272;</div><div class="stat-value" id="statSolutions">—</div><div class="stat-label">Solutions</div></div>
-      </div>
-    </div>
-    <div class="panel">
-      <h3>Pieces <span id="progressText" style="font-family:Lora,serif;font-weight:400;font-size:.8rem;color:#9A7040"></span></h3>
-      <div class="pieces-tray" id="piecesTray"></div>
-    </div>
-    <div class="panel">
-      <h3>Controls</h3>
+    <div class="panel"><h3>Progress</h3><div class="stats-grid">
+      <div class="stat-box"><div class="stat-icon">&#9201;</div><div class="stat-value" id="statTime">0:00</div><div class="stat-label">Time</div></div>
+      <div class="stat-box"><div class="stat-icon">&#127919;</div><div class="stat-value" id="statMoves">0</div><div class="stat-label">Moves</div></div>
+      <div class="stat-box"><div class="stat-icon">&#128272;</div><div class="stat-value" id="statSolutions">&mdash;</div><div class="stat-label">Solutions</div></div>
+    </div></div>
+    <div class="panel"><h3>Pieces <span id="progressText" style="font-family:Lora,serif;font-weight:400;font-size:.8rem;color:#9A7040"></span></h3><div class="pieces-tray" id="piecesTray"></div></div>
+    <div class="panel"><h3>Controls</h3>
       <div class="selected-info" id="selectedInfo">&#8592; Select a piece to begin</div>
       <div class="ctrl-row">
         <button class="btn" id="btnRotate" onclick="rotateSelected()" disabled>&#8635; Rotate <span class="kbd">R</span></button>
@@ -348,50 +250,32 @@
       </div>
       <button class="btn btn-hint" id="btnHint" onclick="hintSelected()" disabled style="width:100%;margin-bottom:6px;flex:none">&#128161; Hint <span class="kbd">H</span></button>
       <button class="btn" id="btnRemove" onclick="removeSelectedToTray()" style="width:100%;margin-bottom:6px;flex:none;background:#9B3030;display:none">&#9003; Remove from Board</button>
-      <div class="solving-msg" id="solvingMsg">Thinking&#8230;</div>
+      <div class="solving-msg" id="solvingMsg">Thinking&hellip;</div>
       <button class="btn btn-reset" onclick="resetGame()">&#8634; Reset Puzzle</button>
     </div>
-    <div class="panel">
-      <h3>How To Play</h3>
-      <ol class="instructions">
-        <li>Select a piece from the tray</li>
-        <li>Rotate <b>(R)</b> or flip <b>(F)</b> it</li>
-        <li>Click the board to place it</li>
-        <li>Rotate/flip after placing to adjust</li>
-        <li>Leave the <span style="color:#B8880A;font-weight:600">&#10022; gold-bordered</span> cells exposed!</li>
-      </ol>
-    </div>
+    <div class="panel"><h3>How To Play</h3><ol class="instructions">
+      <li>Select a piece from the tray</li><li>Rotate <b>(R)</b> or flip <b>(F)</b> it</li>
+      <li>Click the board to place it</li><li>Rotate/flip after placing to adjust</li>
+      <li>Leave the <span style="color:#B8880A;font-weight:600">&#10022; gold-bordered</span> cells exposed!</li>
+    </ol></div>
   </div>
 </div>
 
 <div class="mobile-toolbar" id="mobileToolbar">
   <div class="mobile-selected" id="mobileSelectedInfo">Tap a piece below, then touch board to place</div>
   <div class="mobile-btns">
-    <button class="mobile-btn" id="mbRotate" onclick="rotateSelected()" disabled>
-      <span class="mobile-btn-icon">&#8635;</span><span class="mobile-btn-label">Rotate</span>
-    </button>
-    <button class="mobile-btn" id="mbFlip" onclick="flipSelected()" disabled>
-      <span class="mobile-btn-icon">&#8660;</span><span class="mobile-btn-label">Flip</span>
-    </button>
-    <button class="mobile-btn green" id="mbHint" onclick="hintSelected()" disabled>
-      <span class="mobile-btn-icon">&#128161;</span><span class="mobile-btn-label">Hint</span>
-    </button>
-    <button class="mobile-btn red" id="mbRemove" onclick="removeSelectedToTray()" style="display:none">
-      <span class="mobile-btn-icon">&#9003;</span><span class="mobile-btn-label">Remove</span>
-    </button>
-    <button class="mobile-btn outline" onclick="resetGame()">
-      <span class="mobile-btn-icon">&#8634;</span><span class="mobile-btn-label">Reset</span>
-    </button>
+    <button class="mobile-btn" id="mbRotate" onclick="rotateSelected()" disabled><span class="mobile-btn-icon">&#8635;</span><span class="mobile-btn-label">Rotate</span></button>
+    <button class="mobile-btn" id="mbFlip" onclick="flipSelected()" disabled><span class="mobile-btn-icon">&#8660;</span><span class="mobile-btn-label">Flip</span></button>
+    <button class="mobile-btn green" id="mbHint" onclick="hintSelected()" disabled><span class="mobile-btn-icon">&#128161;</span><span class="mobile-btn-label">Hint</span></button>
+    <button class="mobile-btn red" id="mbRemove" onclick="removeSelectedToTray()" style="display:none"><span class="mobile-btn-icon">&#9003;</span><span class="mobile-btn-label">Remove</span></button>
+    <button class="mobile-btn outline" onclick="resetGame()"><span class="mobile-btn-icon">&#8634;</span><span class="mobile-btn-label">Reset</span></button>
   </div>
-  <div class="mobile-solving" id="mobileSolvingMsg">Thinking&#8230;</div>
+  <div class="mobile-solving" id="mobileSolvingMsg">Thinking&hellip;</div>
 </div>
-
-<div class="mobile-tray-wrap">
-  <div class="panel">
-    <h3>Pieces <span id="progressTextMob" style="font-family:Lora,serif;font-weight:400;font-size:.8rem;color:#9A7040"></span></h3>
-    <div class="mobile-pieces-tray" id="piecesTrayMob"></div>
-  </div>
-</div>
+<div class="mobile-tray-wrap"><div class="panel">
+  <h3>Pieces <span id="progressTextMob" style="font-family:Lora,serif;font-weight:400;font-size:.8rem;color:#9A7040"></span></h3>
+  <div class="mobile-pieces-tray" id="piecesTrayMob"></div>
+</div></div>
 
 <script>
 const PIECE_DEFS=[
@@ -406,913 +290,127 @@ const PIECE_DEFS=[
   {id:8,name:'I',color:'#A83040',cells:[[0,0],[0,2],[1,0],[1,1],[1,2]]},
   {id:9,name:'J',color:'#6B7C8C',cells:[[0,0],[0,1],[0,2],[1,0],[1,1]]},
 ];
+let currentTargetDate=new Date();
 
-// ─── Detect mobile ────────────────────────────────────────────────────────────
-const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+function getCellSize(){if(cellEls&&cellEls[2]&&cellEls[2][0])return cellEls[2][0].offsetWidth||42;return 42;}
+function getBoardRect(){return document.getElementById('board').getBoundingClientRect();}
+function setCellSize(){const a=Math.min(window.innerWidth-80,420);document.documentElement.style.setProperty('--cs',Math.floor(a/7)+'px');}
+setCellSize();window.addEventListener('resize',setCellSize);window.addEventListener('orientationchange',()=>setTimeout(setCellSize,100));
 
-// ─── Current target date ──────────────────────────────────────────────────────
-let currentTargetDate = new Date();
+function isActive(r,c){if(r===0||r===1)return c>=0&&c<6;if(r>=2&&r<=6)return c>=0&&c<7;if(r===7)return c>=4&&c<7;return false;}
+function getCellLabel(r,c){if(r===0)return['Jan','Feb','Mar','Apr','May','Jun'][c];if(r===1)return['Jul','Aug','Sep','Oct','Nov','Dec'][c];if(r>=2&&r<=5)return String((r-2)*7+c+1);if(r===6){if(c<=2)return String(29+c);return['Sun','Mon','Tue','Wed'][c-3];}if(r===7)return['Thu','Fri','Sat'][c-4];return'';}
+function computeTargets(d){const t=d||new Date(),mo=t.getMonth(),day=t.getDate(),dow=t.getDay();const mr=mo<6?0:1,mc=mo<6?mo:mo-6;let dr,dc;if(day<=28){dr=Math.floor((day-1)/7)+2;dc=(day-1)%7}else{dr=6;dc=day-29}let wr,wc;if(dow<=3){wr=6;wc=dow+3}else{wr=7;wc=dow}return[[mr,mc],[dr,dc],[wr,wc]];}
+let TARGET_CELLS=computeTargets(currentTargetDate),TARGET_SET=new Set(TARGET_CELLS.map(([r,c])=>`${r},${c}`));
+function updateTargets(d){currentTargetDate=d;TARGET_CELLS=computeTargets(d);TARGET_SET=new Set(TARGET_CELLS.map(([r,c])=>`${r},${c}`));updateSubtitle();updateDatePickerUI();}
+function updateSubtitle(){const isT=isSameDay(currentTargetDate,new Date()),ds=currentTargetDate.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});document.getElementById('subtitleEl').textContent=isT?`Today is ${ds} \u2014 expose it!`:`Expose ${ds}`;}
+function isSameDay(a,b){return a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate();}
+function updateDatePickerUI(){document.getElementById('btnToday').classList.toggle('active',isSameDay(currentTargetDate,new Date()));const y=currentTargetDate.getFullYear(),m=String(currentTargetDate.getMonth()+1).padStart(2,'0'),d=String(currentTargetDate.getDate()).padStart(2,'0');document.getElementById('dateInput').value=`${y}-${m}-${d}`;}
+function setToday(){updateTargets(new Date());resetGame();}
+function onDateChange(){const v=document.getElementById('dateInput').value;if(!v)return;const p=v.split('-');updateTargets(new Date(+p[0],+p[1]-1,+p[2]));resetGame();}
+function normalize(c){const mR=Math.min(...c.map(([r])=>r)),mC=Math.min(...c.map(([,c])=>c));return c.map(([r,c])=>[r-mR,c-mC]);}
+function rotateCW(c){return normalize(c.map(([r,c])=>[c,-r]))}
+function flipH(c){return normalize(c.map(([r,c])=>[r,-c]))}
 
-// ─── Cell size ────────────────────────────────────────────────────────────────
-function getCellSize(){
-  if(cellEls && cellEls[2] && cellEls[2][0]){
-    return cellEls[2][0].offsetWidth || 52;
-  }
-  return 52;
-}
-
-function getBoardRect(){
-  return document.getElementById('board').getBoundingClientRect();
-}
-
-function setCellSize(){
-  const avail = Math.min(window.innerWidth - 20, 420);
-  const cs = Math.floor(avail / 7);
-  document.documentElement.style.setProperty('--cs', cs + 'px');
-}
-setCellSize();
-window.addEventListener('resize', setCellSize);
-window.addEventListener('orientationchange', () => {
-  setTimeout(setCellSize, 100);
-});
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-function isActive(r,c){
-  if(r===0||r===1) return c>=0&&c<6;
-  if(r>=2&&r<=6)   return c>=0&&c<7;
-  if(r===7)        return c>=4&&c<7;
-  return false;
-}
-function getCellLabel(r,c){
-  if(r===0) return['Jan','Feb','Mar','Apr','May','Jun'][c];
-  if(r===1) return['Jul','Aug','Sep','Oct','Nov','Dec'][c];
-  if(r>=2&&r<=5) return String((r-2)*7+c+1);
-  if(r===6){if(c<=2) return String(29+c);return['Sun','Mon','Tue','Wed'][c-3];}
-  if(r===7) return['Thu','Fri','Sat'][c-4];
-  return'';
-}
-function computeTargets(date){
-  const t = date || new Date();
-  const mo=t.getMonth(),day=t.getDate(),dow=t.getDay();
-  const mr=mo<6?0:1,mc=mo<6?mo:mo-6;
-  let dr,dc;
-  if(day<=28){dr=Math.floor((day-1)/7)+2;dc=(day-1)%7}else{dr=6;dc=day-29}
-  let wr,wc;
-  if(dow<=3){wr=6;wc=dow+3}else{wr=7;wc=dow}
-  return[[mr,mc],[dr,dc],[wr,wc]];
-}
-
-let TARGET_CELLS=computeTargets(currentTargetDate);
-let TARGET_SET=new Set(TARGET_CELLS.map(([r,c])=>`${r},${c}`));
-
-function updateTargets(date){
-  currentTargetDate = date;
-  TARGET_CELLS = computeTargets(date);
-  TARGET_SET = new Set(TARGET_CELLS.map(([r,c])=>`${r},${c}`));
-  updateSubtitle();
-  updateDatePickerUI();
-}
-
-function updateSubtitle(){
-  const isToday = isSameDay(currentTargetDate, new Date());
-  const dateStr = currentTargetDate.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
-  const el = document.getElementById('subtitleEl');
-  if(isToday){
-    el.textContent = `Today is ${dateStr} — can you expose it?`;
-  } else {
-    el.textContent = `Can you expose ${dateStr}?`;
-  }
-}
-
-function isSameDay(d1, d2){
-  return d1.getFullYear()===d2.getFullYear() && d1.getMonth()===d2.getMonth() && d1.getDate()===d2.getDate();
-}
-
-function updateDatePickerUI(){
-  const isToday = isSameDay(currentTargetDate, new Date());
-  document.getElementById('btnToday').classList.toggle('active', isToday);
-  const y = currentTargetDate.getFullYear();
-  const m = String(currentTargetDate.getMonth()+1).padStart(2,'0');
-  const d = String(currentTargetDate.getDate()).padStart(2,'0');
-  document.getElementById('dateInput').value = `${y}-${m}-${d}`;
-}
-
-function setToday(){
-  updateTargets(new Date());
-  resetGame();
-}
-
-function onDateChange(){
-  const val = document.getElementById('dateInput').value;
-  if(!val) return;
-  const parts = val.split('-');
-  const date = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
-  updateTargets(date);
-  resetGame();
-}
-
-function normalize(cells){
-  const minR=Math.min(...cells.map(([r])=>r)),minC=Math.min(...cells.map(([,c])=>c));
-  return cells.map(([r,c])=>[r-minR,c-minC]);
-}
-function rotateCW(cells){return normalize(cells.map(([r,c])=>[c,-r]))}
-function flipH(cells){return normalize(cells.map(([r,c])=>[r,-c]))}
-
-// ─── Game state ───────────────────────────────────────────────────────────────
 let pieces,boardPieces,cellEls=[];
-let selectedPieceId=null;
-let hoverCell=null;
-let moveCount=0,timerStarted=false,timerSeconds=0,timerInterval=null,solComputeTimer=null;
-let placedAnchor=null;
-
-function initState(){
-  pieces=PIECE_DEFS.map(p=>({...p,cells:p.cells.map(c=>[...c]),placed:false}));
-  boardPieces=Array.from({length:8},()=>Array(7).fill(null));
-  selectedPieceId=null; hoverCell=null; placedAnchor=null;
-  moveCount=0;timerStarted=false;timerSeconds=0;
-  if(timerInterval){clearInterval(timerInterval);timerInterval=null;}
-  if(solComputeTimer){clearTimeout(solComputeTimer);solComputeTimer=null;}
-  ghost.hide();
-  updateAllStats();
-}
-
-// ─── Timer ────────────────────────────────────────────────────────────────────
-function startTimerIfNeeded(){
-  if(timerStarted) return;
-  timerStarted=true;
-  timerInterval=setInterval(()=>{
-    timerSeconds++;
-    const s=formatTime(timerSeconds);
-    sv('statTime',s,'ticking');sv('statTimeMob',s,'ticking');
-  },1000);
-}
+let selectedPieceId=null,hoverCell=null,moveCount=0,timerStarted=false,timerSeconds=0,timerInterval=null,solComputeTimer=null,placedAnchor=null;
+function initState(){pieces=PIECE_DEFS.map(p=>({...p,cells:p.cells.map(c=>[...c]),placed:false}));boardPieces=Array.from({length:8},()=>Array(7).fill(null));selectedPieceId=null;hoverCell=null;placedAnchor=null;moveCount=0;timerStarted=false;timerSeconds=0;if(timerInterval){clearInterval(timerInterval);timerInterval=null;}if(solComputeTimer){clearTimeout(solComputeTimer);solComputeTimer=null;}ghost.hide();updateAllStats();}
+function startTimerIfNeeded(){if(timerStarted)return;timerStarted=true;timerInterval=setInterval(()=>{timerSeconds++;const s=fmt(timerSeconds);sv('statTime',s,'ticking');sv('statTimeMob',s,'ticking');},1000);}
 function stopTimer(){if(timerInterval){clearInterval(timerInterval);timerInterval=null;}}
-function formatTime(s){return`${Math.floor(s/60)}:${(s%60).toString().padStart(2,'0')}`;}
-function sv(id,text,cls=''){
-  const el=document.getElementById(id);if(!el) return;
-  el.textContent=text;el.className='stat-value'+(cls?' '+cls:'');
-}
-function updateAllStats(){
-  const t=formatTime(timerSeconds);
-  sv('statTime',t,timerStarted?'ticking':'');sv('statTimeMob',t,timerStarted?'ticking':'');
-  sv('statMoves',String(moveCount));sv('statMovesMob',String(moveCount));
-}
+function fmt(s){return`${Math.floor(s/60)}:${(s%60).toString().padStart(2,'0')}`;}
+function sv(id,t,cls=''){const el=document.getElementById(id);if(!el)return;el.textContent=t;el.className='stat-value'+(cls?' '+cls:'');}
+function updateAllStats(){const t=fmt(timerSeconds);sv('statTime',t,timerStarted?'ticking':'');sv('statTimeMob',t,timerStarted?'ticking':'');sv('statMoves',String(moveCount));sv('statMovesMob',String(moveCount));}
 
-// ─── Solution counter ─────────────────────────────────────────────────────────
-function cellsKey(cells){return cells.map(([r,c])=>`${r},${c}`).sort().join('|');}
-function getOrientations(baseCells){
-  const seen=new Set(),result=[];let cur=baseCells.map(c=>[...c]);
-  for(let f=0;f<2;f++){
-    for(let rot=0;rot<4;rot++){const n=normalize(cur),k=cellsKey(n);if(!seen.has(k)){seen.add(k);result.push(n)}cur=rotateCW(cur);}
-    cur=flipH(cur);
-  }
-  return result;
-}
+function cellsKey(c){return c.map(([r,c])=>`${r},${c}`).sort().join('|');}
+function getOrientations(bc){const seen=new Set(),res=[];let cur=bc.map(c=>[...c]);for(let f=0;f<2;f++){for(let rot=0;rot<4;rot++){const n=normalize(cur),k=cellsKey(n);if(!seen.has(k)){seen.add(k);res.push(n)}cur=rotateCW(cur);}cur=flipH(cur);}return res;}
 const MAX_SOL=6,MAX_SOL_MS=400;
-function countSolutions(board,remaining){
-  let count=0,timedOut=false;
-  const deadline=performance.now()+MAX_SOL_MS;
-  function solve(rem){
-    if(count>=MAX_SOL||timedOut) return;
-    if((count&15)===0&&performance.now()>deadline){timedOut=true;return;}
-    let fr=-1,fc=-1;
-    outer:for(let r=0;r<8;r++) for(let c=0;c<7;c++) if(isActive(r,c)&&!TARGET_SET.has(`${r},${c}`)&&board[r][c]===null){fr=r;fc=c;break outer}
-    if(fr===-1){if(TARGET_CELLS.every(([r,c])=>board[r][c]===null)) count++;return;}
-    for(let i=0;i<rem.length;i++){
-      if(count>=MAX_SOL||timedOut) return;
-      const{id,orientations}=rem[i],rest=rem.filter((_,j)=>j!==i);
-      for(const ori of orientations){
-        if(count>=MAX_SOL||timedOut) return;
-        for(const[dr,dc] of ori){
-          if(count>=MAX_SOL||timedOut) return;
-          const ar=fr-dr,ac=fc-dc;let ok=true;
-          for(const[r2,c2] of ori){const r=ar+r2,c=ac+c2;if(r<0||r>=8||c<0||c>=7||!isActive(r,c)||board[r][c]!==null){ok=false;break}}
-          if(!ok) continue;
-          for(const[r2,c2] of ori) board[ar+r2][ac+c2]=id;
-          solve(rest);
-          for(const[r2,c2] of ori) board[ar+r2][ac+c2]=null;
-        }
-      }
-    }
-  }
-  solve(remaining);return{count,timedOut};
-}
-function scheduleSolutionCount(){
-  const placed=pieces.filter(p=>p.placed).length;
-  if(placed===0){sv('statSolutions','—');sv('statSolsMob','—');return;}
-  sv('statSolutions','…');sv('statSolsMob','…');
-  if(solComputeTimer) clearTimeout(solComputeTimer);
-  solComputeTimer=setTimeout(()=>{
-    const board=boardPieces.map(row=>[...row]);
-    const remaining=pieces.filter(p=>!p.placed).map(p=>({id:p.id,orientations:getOrientations(PIECE_DEFS[p.id].cells)}));
-    const{count:n,timedOut}=countSolutions(board,remaining);
-    const display=timedOut||n>=MAX_SOL?'>5':String(n);
-    const cls=n<=3&&n>0&&!timedOut?'sol-low':'';
-    sv('statSolutions',display,cls);sv('statSolsMob',display,cls);
-  },40);
-}
+function countSolutions(board,rem){let count=0,to=false;const dl=performance.now()+MAX_SOL_MS;function solve(rem){if(count>=MAX_SOL||to)return;if((count&15)===0&&performance.now()>dl){to=true;return;}let fr=-1,fc=-1;outer:for(let r=0;r<8;r++)for(let c=0;c<7;c++)if(isActive(r,c)&&!TARGET_SET.has(`${r},${c}`)&&board[r][c]===null){fr=r;fc=c;break outer}if(fr===-1){if(TARGET_CELLS.every(([r,c])=>board[r][c]===null))count++;return;}for(let i=0;i<rem.length;i++){if(count>=MAX_SOL||to)return;const{id,orientations}=rem[i],rest=rem.filter((_,j)=>j!==i);for(const ori of orientations){if(count>=MAX_SOL||to)return;for(const[dr,dc] of ori){if(count>=MAX_SOL||to)return;const ar=fr-dr,ac=fc-dc;let ok=true;for(const[r2,c2] of ori){const r=ar+r2,c=ac+c2;if(r<0||r>=8||c<0||c>=7||!isActive(r,c)||board[r][c]!==null){ok=false;break}}if(!ok)continue;for(const[r2,c2] of ori)board[ar+r2][ac+c2]=id;solve(rest);for(const[r2,c2] of ori)board[ar+r2][ac+c2]=null;}}}}solve(rem);return{count,timedOut:to};}
+function scheduleSolutionCount(){const pl=pieces.filter(p=>p.placed).length;if(pl===0){sv('statSolutions','\u2014');sv('statSolsMob','\u2014');return;}sv('statSolutions','\u2026');sv('statSolsMob','\u2026');if(solComputeTimer)clearTimeout(solComputeTimer);solComputeTimer=setTimeout(()=>{const board=boardPieces.map(r=>[...r]);const rem=pieces.filter(p=>!p.placed).map(p=>({id:p.id,orientations:getOrientations(PIECE_DEFS[p.id].cells)}));const{count:n,timedOut:to}=countSolutions(board,rem);const d=to||n>=MAX_SOL?'>5':String(n);sv('statSolutions',d,n<=3&&n>0&&!to?'sol-low':'');sv('statSolsMob',d,n<=3&&n>0&&!to?'sol-low':'');},40);}
 
-// ─── Ghost drag system (overhauled for mobile) ───────────────────────────────
-// Key concepts:
-//   grabR, grabC = which cell within the piece shape the "grab point" is at
-//   When dragging over the board, the ghost SNAPS to the grid so you see
-//   exactly where the piece will land.
-//   Anchor = (boardCellR - grabR, boardCellC - grabC) for placement.
-const FINGER_OFFSET = 50; // pixels above touch point so finger doesn't block view
+function isValidPlacement(pid,ar,ac){for(const[dr,dc] of pieces[pid].cells){const r=ar+dr,c=ac+dc;if(r<0||r>=8||c<0||c>=7||!isActive(r,c)||boardPieces[r][c]!==null)return false;}return true;}
+function isOverlapping(pid,ar,ac){let any=false,allOn=true;for(const[dr,dc] of pieces[pid].cells){const r=ar+dr,c=ac+dc;if(r<0||r>=8||c<0||c>=7||!isActive(r,c)){allOn=false;break;}if(boardPieces[r][c]!==null)any=true;}return allOn&&any;}
 
+const FINGER_OFFSET=55;
 const ghost={
-  visible:false,
-  dragging:false,
-  grabR:0, grabC:0,        // grab point within piece (piece-local coords, integer for snap)
-  lastAr:null, lastAc:null, // last computed ANCHOR for placement
-  offsetX:0, offsetY:0,     // pixel offset from touch to ghost top-left
-  _savedAr:null, _savedAc:null, // for restoring picked-up pieces on cancel
-
-  // Find the CENTER cell of the current piece (nearest integer for snap math)
-  getGrabCell(){
-    if(selectedPieceId===null) return[0,0];
-    const cells=pieces[selectedPieceId].cells;
-    const rows=cells.map(([r])=>r), cols=cells.map(([,c])=>c);
-    const centerR=(Math.min(...rows)+Math.max(...rows))/2;
-    const centerC=(Math.min(...cols)+Math.max(...cols))/2;
-    return[Math.round(centerR), Math.round(centerC)];
-  },
-
-  // Build the visual ghost grid from the current piece shape
-  _buildGrid(){
-    if(selectedPieceId===null) return;
-    const p=pieces[selectedPieceId];
-    const cs=getCellSize();
-    const rows=p.cells.map(([r])=>r),cols=p.cells.map(([,c])=>c);
-    const maxR=Math.max(...rows),maxC=Math.max(...cols);
-    const cellSet=new Set(p.cells.map(([r,c])=>`${r},${c}`));
-    const grid=document.getElementById('ghostGrid');
-    grid.innerHTML='';
-    grid.style.gridTemplateColumns=`repeat(${maxC+1},${cs}px)`;
-    grid.style.gridTemplateRows=`repeat(${maxR+1},${cs}px)`;
-    for(let r=0;r<=maxR;r++){
-      for(let c=0;c<=maxC;c++){
-        const cell=document.createElement('div');
-        cell.style.width=cs+'px';cell.style.height=cs+'px';
-        if(cellSet.has(`${r},${c}`)){
-          cell.className='ghost-cell';
-          cell.style.background=p.color;
-          cell.style.opacity='0.92';
-        }
-        grid.appendChild(cell);
-      }
-    }
-  },
-
-  // Refresh ghost grid in place (after rotate/flip while floating)
-  refresh(){
-    if(!this.visible||selectedPieceId===null) return;
-    this._buildGrid();
-    const[gr,gc]=this.getGrabCell();
-    this.grabR=gr; this.grabC=gc;
-    const cs=getCellSize();
-    this.offsetX=(gc+0.5)*cs;
-    this.offsetY=(gr+0.5)*cs + FINGER_OFFSET;
-    // Re-center on board
-    this._centerOnBoard();
-  },
-
-  // Show ghost centered on the board (floating, not dragging)
-  showAtBoard(){
-    if(selectedPieceId===null) return;
-    this._buildGrid();
-    const[gr,gc]=this.getGrabCell();
-    this.grabR=gr; this.grabC=gc;
-    const cs=getCellSize();
-    this.offsetX=(gc+0.5)*cs;
-    this.offsetY=(gr+0.5)*cs + FINGER_OFFSET;
-    this._centerOnBoard();
-    const el=document.getElementById('dragGhost');
-    el.className='visible floating';
-    this.visible=true; this.dragging=false;
-    this.lastAr=null; this.lastAc=null;
-  },
-
-  _centerOnBoard(){
-    const cs=getCellSize();
-    const p=pieces[selectedPieceId];
-    const rows=p.cells.map(([r])=>r),cols=p.cells.map(([,c])=>c);
-    const maxR=Math.max(...rows),maxC=Math.max(...cols);
-    const gw=(maxC+1)*cs, gh=(maxR+1)*cs;
-    const rect=getBoardRect();
-    const x=rect.left+(rect.width-gw)/2;
-    const y=rect.top+(rect.height-gh)/2;
-    const el=document.getElementById('dragGhost');
-    el.style.left=x+'px'; el.style.top=y+'px';
-  },
-
-  // Start dragging from a touch/click on the board
-  startDrag(clientX,clientY){
-    if(!this.visible||selectedPieceId===null) return;
-    this.dragging=true;
-    const[gr,gc]=this.getGrabCell();
-    this.grabR=gr; this.grabC=gc;
-    const cs=getCellSize();
-    this.offsetX=(gc+0.5)*cs;
-    this.offsetY=(gr+0.5)*cs + FINGER_OFFSET;
-    // Position immediately
-    this._positionForTouch(clientX,clientY);
-    document.getElementById('dragGhost').className='visible dragging';
-    document.body.classList.add('dragging');
-  },
-
-  // Start dragging a piece picked up from the board
-  startDragFromBoard(anchorR,anchorC,touchedR,touchedC,clientX,clientY){
-    if(selectedPieceId===null) return;
-    this._buildGrid();
-    // Use center of piece as grab point for consistent feel
-    const[gr,gc]=this.getGrabCell();
-    this.grabR=gr; this.grabC=gc;
-    const cs=getCellSize();
-    this.offsetX=(gc+0.5)*cs;
-    this.offsetY=(gr+0.5)*cs + FINGER_OFFSET;
-    this._savedAr=anchorR;
-    this._savedAc=anchorC;
-    // Position ghost at touch point with offset (piece above finger)
-    const el=document.getElementById('dragGhost');
-    el.style.left=(clientX-this.offsetX)+'px';
-    el.style.top=(clientY-this.offsetY)+'px';
-    el.className='visible dragging';
-    this.visible=true; this.dragging=true;
-    this.lastAr=anchorR; this.lastAc=anchorC;
-    document.body.classList.add('dragging');
-  },
-
-  // Process drag movement — SNAPS to grid when over the board
-  move(clientX,clientY){
-    if(!this.dragging) return;
-    // Find which board cell the finger is over
-    const raw=this._rawBoardCellAt(clientX,clientY);
-    if(raw.r!==null){
-      // Compute placement anchor from grab offset
-      const ar=raw.r-this.grabR;
-      const ac=raw.c-this.grabC;
-      this.lastAr=ar; this.lastAc=ac;
-      // SNAP ghost to exact grid position, shifted up so finger doesn't block
-      const cs=getCellSize();
-      const rect=getBoardRect();
-      const el=document.getElementById('dragGhost');
-      el.style.left=(rect.left+ac*cs)+'px';
-      el.style.top=(rect.top+ar*cs - FINGER_OFFSET)+'px';
-      const valid=isValidPlacement(selectedPieceId,ar,ac);
+  visible:false,dragging:false,grabR:0,grabC:0,lastAr:null,lastAc:null,offsetX:0,offsetY:0,_savedAr:null,_savedAc:null,
+  getGrabCell(){if(selectedPieceId===null)return[0,0];const c=pieces[selectedPieceId].cells,rs=c.map(([r])=>r),cs=c.map(([,c])=>c);return[Math.round((Math.min(...rs)+Math.max(...rs))/2),Math.round((Math.min(...cs)+Math.max(...cs))/2)];},
+  _buildGrid(){if(selectedPieceId===null)return;const p=pieces[selectedPieceId],cs=getCellSize(),rs=p.cells.map(([r])=>r),cl=p.cells.map(([,c])=>c),mR=Math.max(...rs),mC=Math.max(...cl),s=new Set(p.cells.map(([r,c])=>`${r},${c}`)),g=document.getElementById('ghostGrid');g.innerHTML='';g.style.gridTemplateColumns=`repeat(${mC+1},${cs}px)`;g.style.gridTemplateRows=`repeat(${mR+1},${cs}px)`;for(let r=0;r<=mR;r++)for(let c=0;c<=mC;c++){const d=document.createElement('div');d.style.width=cs+'px';d.style.height=cs+'px';if(s.has(`${r},${c}`)){d.className='ghost-cell';d.style.background=p.color;d.style.opacity='0.92';}g.appendChild(d);}},
+  _calcOffset(){const[gr,gc]=this.getGrabCell();this.grabR=gr;this.grabC=gc;const cs=getCellSize();this.offsetX=(gc+.5)*cs;this.offsetY=(gr+.5)*cs+FINGER_OFFSET;},
+  refresh(){if(!this.visible||selectedPieceId===null)return;this._buildGrid();this._calcOffset();this._centerOnBoard();},
+  showAtBoard(){if(selectedPieceId===null)return;this._buildGrid();this._calcOffset();this._centerOnBoard();document.getElementById('dragGhost').className='visible floating';this.visible=true;this.dragging=false;this.lastAr=null;this.lastAc=null;},
+  _centerOnBoard(){const cs=getCellSize(),p=pieces[selectedPieceId],rs=p.cells.map(([r])=>r),cl=p.cells.map(([,c])=>c),gw=(Math.max(...cl)+1)*cs,gh=(Math.max(...rs)+1)*cs,rect=getBoardRect(),el=document.getElementById('dragGhost');el.style.left=(rect.left+(rect.width-gw)/2)+'px';el.style.top=(rect.top+(rect.height-gh)/2)+'px';},
+  startDrag(cx,cy){if(!this.visible||selectedPieceId===null)return;this.dragging=true;this._calcOffset();const el=document.getElementById('dragGhost');el.style.left=(cx-this.offsetX)+'px';el.style.top=(cy-this.offsetY)+'px';el.className='visible dragging';document.body.classList.add('dragging');},
+  startDragFromBoard(aR,aC,tR,tC,cx,cy){if(selectedPieceId===null)return;this._buildGrid();this._calcOffset();this._savedAr=aR;this._savedAc=aC;const el=document.getElementById('dragGhost');el.style.left=(cx-this.offsetX)+'px';el.style.top=(cy-this.offsetY)+'px';el.className='visible dragging';this.visible=true;this.dragging=true;this.lastAr=null;this.lastAc=null;document.body.classList.add('dragging');},
+  move(cx,cy){
+    if(!this.dragging)return;
+    // Cell detection at the ghost's VISUAL center, not at the finger
+    const logY=cy-FINGER_OFFSET, cell=this._cellFromPoint(cx,logY);
+    if(cell.r!==null){
+      const ar=cell.r-this.grabR,ac=cell.c-this.grabC;
+      this.lastAr=ar;this.lastAc=ac;
+      const cs=getCellSize(),rect=getBoardRect(),el=document.getElementById('dragGhost');
+      // Ghost snaps to grid — what you see is where it places
+      el.style.left=(rect.left+ac*cs)+'px';el.style.top=(rect.top+ar*cs)+'px';
+      const valid=isValidPlacement(selectedPieceId,ar,ac),overlap=!valid&&isOverlapping(selectedPieceId,ar,ac);
       el.className='visible snapped '+(valid?'over-valid':'over-invalid');
-      refreshBoard(ar,ac);
+      this._setGhostStyle(valid?'normal':overlap?'overlap':'normal');
+      refreshBoard();
     } else {
-      // Not over board — free-follow the finger
-      this.lastAr=null; this.lastAc=null;
+      this.lastAr=null;this.lastAc=null;
       const el=document.getElementById('dragGhost');
-      el.style.left=(clientX-this.offsetX)+'px';
-      el.style.top=(clientY-this.offsetY)+'px';
-      el.className='visible dragging';
-      refreshBoard();
+      el.style.left=(cx-this.offsetX)+'px';el.style.top=(cy-this.offsetY)+'px';
+      el.className='visible dragging';this._setGhostStyle('normal');refreshBoard();
     }
   },
-
-  // Attempt placement or return to tray on drag end
-  endDrag(){
-    if(!this.dragging) return;
-    this.dragging=false;
-    document.body.classList.remove('dragging');
-    const ar=this.lastAr, ac=this.lastAc;
-
-    if(ar!==null&&selectedPieceId!==null&&!pieces[selectedPieceId].placed&&isValidPlacement(selectedPieceId,ar,ac)){
-      // Valid drop → place it
-      recordPlacement(ar,ac);
-      placePiece(selectedPieceId,ar,ac);
-      this.hide();
-      buildAllTrays();updateControls();refreshBoard();checkWin();scheduleSolutionCount();
-    } else if(this._savedAr!==null&&selectedPieceId!==null&&!pieces[selectedPieceId].placed){
-      // Picked up from board but dropped off/invalid → return to tray (not restore)
-      this._savedAr=null; this._savedAc=null;
-      // Piece stays unplaced — show ghost centered on board so they can re-drag
-      this.showAtBoard();
-      buildAllTrays();updateControls();refreshBoard();scheduleSolutionCount();
-    } else {
-      // Unplaced piece dropped off board → keep floating
-      this.showAtBoard();
-      refreshBoard();
-    }
-  },
-
-  // Position ghost for a touch point (free-form, before snapping)
-  _positionForTouch(clientX,clientY){
-    const el=document.getElementById('dragGhost');
-    el.style.left=(clientX-this.offsetX)+'px';
-    el.style.top=(clientY-this.offsetY)+'px';
-  },
-
-  // Find the RAW board cell under a screen coordinate (hides ghost temporarily)
-  _rawBoardCellAt(clientX,clientY){
-    const el=document.getElementById('dragGhost');
-    const prev=el.style.visibility;
-    el.style.visibility='hidden';
-    const target=document.elementFromPoint(clientX,clientY);
-    el.style.visibility=prev;
-    if(!target) return{r:null,c:null};
-    let t=target;
-    while(t&&!t._cellCoords) t=t.parentElement;
-    if(t&&t._cellCoords) return{r:t._cellCoords.r,c:t._cellCoords.c};
-    return{r:null,c:null};
-  },
-
-  hide(){
-    document.getElementById('dragGhost').className='';
-    this.visible=false; this.dragging=false;
-    this.lastAr=null; this.lastAc=null;
-    this._savedAr=null; this._savedAc=null;
-    document.body.classList.remove('dragging');
-  }
+  endDrag(){if(!this.dragging)return;this.dragging=false;document.body.classList.remove('dragging');this._setGhostStyle('normal');const ar=this.lastAr,ac=this.lastAc;if(ar!==null&&selectedPieceId!==null&&!pieces[selectedPieceId].placed&&isValidPlacement(selectedPieceId,ar,ac)){recordPlacement(ar,ac);placePiece(selectedPieceId,ar,ac);this.hide();buildAllTrays();updateControls();refreshBoard();checkWin();scheduleSolutionCount();}else if(this._savedAr!==null&&selectedPieceId!==null&&!pieces[selectedPieceId].placed){this._savedAr=null;this._savedAc=null;this.showAtBoard();buildAllTrays();updateControls();refreshBoard();scheduleSolutionCount();}else{this.showAtBoard();refreshBoard();}},
+  _cellFromPoint(x,y){const rect=getBoardRect(),cs=getCellSize(),col=Math.round((x-rect.left)/cs-.5),row=Math.round((y-rect.top)/cs-.5);if(row>=0&&row<8&&col>=0&&col<7&&isActive(row,col))return{r:row,c:col};for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){const rr=row+dr,cc=col+dc;if(rr>=0&&rr<8&&cc>=0&&cc<7&&isActive(rr,cc))return{r:rr,c:cc};}return{r:null,c:null};},
+  _setGhostStyle(mode){const g=document.getElementById('ghostGrid');if(!g||selectedPieceId===null)return;const p=pieces[selectedPieceId];g.querySelectorAll('.ghost-cell').forEach(c=>{if(mode==='overlap'){c.style.background='#1a1a1a';c.style.outline='2.5px solid #cc3333';c.style.outlineOffset='-2.5px';c.style.opacity='0.88';}else{c.style.background=p.color;c.style.outline='none';c.style.outlineOffset='';c.style.opacity='0.92';}});},
+  hide(){document.getElementById('dragGhost').className='';this.visible=false;this.dragging=false;this.lastAr=null;this.lastAc=null;this._savedAr=null;this._savedAc=null;document.body.classList.remove('dragging');}
 };
 
-// ─── Document-level touch handlers ────────────────────────────────────────────
-let activeTouchId = null;
+let activeTouchId=null;
+document.addEventListener('touchmove',e=>{if(!ghost.dragging)return;e.preventDefault();const t=Array.from(e.touches).find(t=>t.identifier===activeTouchId)||e.touches[0];if(t)ghost.move(t.clientX,t.clientY);},{passive:false});
+document.addEventListener('touchend',e=>{if(!ghost.dragging)return;const ended=Array.from(e.changedTouches).find(t=>t.identifier===activeTouchId);if(ended||e.touches.length===0){e.preventDefault();ghost.endDrag();activeTouchId=null;}},{passive:false});
+document.addEventListener('touchcancel',e=>{if(!ghost.dragging)return;ghost.dragging=false;document.body.classList.remove('dragging');activeTouchId=null;ghost._savedAr=null;ghost._savedAc=null;ghost.showAtBoard();buildAllTrays();updateControls();refreshBoard();scheduleSolutionCount();},{passive:false});
+document.getElementById('boardContainer').addEventListener('touchstart',e=>{if(ghost.visible&&!ghost.dragging&&selectedPieceId!==null&&!pieces[selectedPieceId].placed){e.preventDefault();activeTouchId=e.touches[0].identifier;ghost.startDrag(e.touches[0].clientX,e.touches[0].clientY);}},{passive:false});
 
-document.addEventListener('touchmove',e=>{
-  if(!ghost.dragging) return;
-  e.preventDefault();
-  const touch = Array.from(e.touches).find(t => t.identifier === activeTouchId) || e.touches[0];
-  if(touch) ghost.move(touch.clientX, touch.clientY);
-},{passive:false});
+function buildBoard(){const b=document.getElementById('board');b.innerHTML='';cellEls=[];for(let r=0;r<8;r++){cellEls[r]=[];for(let c=0;c<7;c++){const d=document.createElement('div');d.className='cell';cellEls[r][c]=d;if(!isActive(r,c)){d.classList.add('inactive');}else{d._cellCoords={r,c};if(TARGET_SET.has(`${r},${c}`))d.classList.add('target-cell');const ov=document.createElement('div');ov.className='cell-piece-overlay';d.appendChild(ov);const lb=document.createElement('span');lb.className='cell-label';lb.textContent=getCellLabel(r,c);d.appendChild(lb);d.addEventListener('mouseenter',()=>{hoverCell={r,c};refreshBoard()});d.addEventListener('mouseleave',()=>{hoverCell=null;refreshBoard()});d.addEventListener('click',()=>onCellClick(r,c));d.addEventListener('touchstart',e=>onCellTouchStart(r,c,e),{passive:false});}b.appendChild(d);}}}
 
-document.addEventListener('touchend',e=>{
-  if(!ghost.dragging) return;
-  const ended = Array.from(e.changedTouches).find(t => t.identifier === activeTouchId);
-  if(ended || e.touches.length === 0){
-    e.preventDefault();
-    ghost.endDrag();
-    activeTouchId = null;
-  }
-},{passive:false});
+function refreshBoard(){const pid=selectedPieceId;const spc=new Set();if(pid!==null&&pieces[pid].placed)for(let r=0;r<8;r++)for(let c=0;c<7;c++)if(boardPieces[r][c]===pid)spc.add(`${r},${c}`);for(let r=0;r<8;r++)for(let c=0;c<7;c++){if(!isActive(r,c))continue;const d=cellEls[r][c],ov=d.querySelector('.cell-piece-overlay'),occ=boardPieces[r][c];d.classList.toggle('target-cell',TARGET_SET.has(`${r},${c}`));if(occ!==null){ov.style.background=pieces[occ].color;ov.classList.add('visible');d.classList.add('covered');}else{ov.classList.remove('visible');d.classList.remove('covered');}d.classList.remove('preview-valid','preview-invalid','sel-placed-ring');if(spc.has(`${r},${c}`))d.classList.add('sel-placed-ring');}if(!ghost.dragging&&pid!==null&&!pieces[pid].placed&&hoverCell!==null){const{r:ar,c:ac}=hoverCell;const v=isValidPlacement(pid,ar,ac),cls=v?'preview-valid':'preview-invalid';for(const[dr,dc] of pieces[pid].cells){const r=ar+dr,c=ac+dc;if(r>=0&&r<8&&c>=0&&c<7&&isActive(r,c))cellEls[r][c].classList.add(cls);}}}
 
-document.addEventListener('touchcancel',e=>{
-  if(!ghost.dragging) return;
-  ghost.dragging=false;
-  document.body.classList.remove('dragging');
-  activeTouchId = null;
-  ghost._savedAr=null; ghost._savedAc=null;
-  ghost.showAtBoard();
-  buildAllTrays();updateControls();refreshBoard();scheduleSolutionCount();
-},{passive:false});
+function buildOneTray(cid,pid,mob){const tray=document.getElementById(cid);if(!tray)return;tray.innerHTML='';let pc=0;for(let i=0;i<pieces.length;i++){const p=pieces[i];if(p.placed)pc++;const w=document.createElement('div');w.className='piece-wrapper';const isSel=selectedPieceId===i;if(p.placed&&isSel)w.classList.add('placed-selected');else if(p.placed)w.classList.add('placed-away');else if(isSel)w.classList.add('selected');const rs=p.cells.map(([r])=>r),cl=p.cells.map(([,c])=>c),mR=Math.max(...rs),mC=Math.max(...cl),cs=new Set(p.cells.map(([r,c])=>`${r},${c}`));const mg=document.createElement('div');mg.className='piece-mini';mg.style.gridTemplateColumns=`repeat(${mC+1},13px)`;mg.style.gridTemplateRows=`repeat(${mR+1},13px)`;mg.style.display='grid';for(let r=0;r<=mR;r++)for(let c=0;c<=mC;c++){const mc=document.createElement('div');if(cs.has(`${r},${c}`)){mc.className='piece-mini-cell';mc.style.background=p.color;}else{mc.style.width='13px';mc.style.height='13px';}mg.appendChild(mc);}w.appendChild(mg);w.addEventListener('click',e=>{if(ghost.dragging)return;startTimerIfNeeded();if(selectedPieceId===i&&!pieces[i].placed){selectedPieceId=null;placedAnchor=null;ghost.hide();}else if(selectedPieceId===i&&pieces[i].placed){selectedPieceId=null;placedAnchor=null;ghost.hide();}else selectPiece(i);buildAllTrays();updateControls();refreshBoard();});if(mob)w.addEventListener('touchstart',e=>{e.preventDefault();startTimerIfNeeded();selectPiece(i);buildAllTrays();updateControls();refreshBoard();ghost.showAtBoard();},{passive:false});tray.appendChild(w);}const pr=document.getElementById(pid);if(pr)pr.textContent=`(${pc}/10)`;}
+function buildAllTrays(){buildOneTray('piecesTray','progressText',false);buildOneTray('piecesTrayMob','progressTextMob',true);}
+function selectPiece(i){if(selectedPieceId===i)return;if(pieces[i].placed){removePiece(i);scheduleSolutionCount();}selectedPieceId=i;placedAnchor=null;}
 
-// Board container touch: start drag when ghost is floating (not yet dragging)
-document.getElementById('boardContainer').addEventListener('touchstart',e=>{
-  if(ghost.visible&&!ghost.dragging&&selectedPieceId!==null&&!pieces[selectedPieceId].placed){
-    e.preventDefault();
-    activeTouchId = e.touches[0].identifier;
-    ghost.startDrag(e.touches[0].clientX,e.touches[0].clientY);
-  }
-},{passive:false});
+function updateControls(){const has=selectedPieceId!==null,isP=has&&pieces[selectedPieceId].placed;['btnRotate','btnFlip','btnHint'].forEach(id=>{const el=document.getElementById(id);if(el)el.disabled=!has;});const br=document.getElementById('btnRemove');if(br)br.style.display=isP?'flex':'none';const info=document.getElementById('selectedInfo');if(info){if(!has)info.textContent='\u2190 Select a piece';else if(isP)info.textContent=`${pieces[selectedPieceId].name} placed \u2022 rotate/flip/remove`;else info.textContent=`${pieces[selectedPieceId].name} selected \u2022 click board`;}['mbRotate','mbFlip','mbHint'].forEach(id=>{const el=document.getElementById(id);if(el)el.disabled=!has;});const mr=document.getElementById('mbRemove'),mb=document.querySelector('.mobile-btns');if(mr&&mb){if(isP){mr.style.display='flex';mb.classList.add('has-remove');}else{mr.style.display='none';mb.classList.remove('has-remove');}}const mi=document.getElementById('mobileSelectedInfo');if(mi){if(!has)mi.textContent='Tap a piece below, then touch board';else if(isP)mi.textContent=`${pieces[selectedPieceId].name} placed \u2022 tap to move or remove`;else mi.textContent=`Touch board to drag ${pieces[selectedPieceId].name}`;}}
 
-// ─── Board rendering ──────────────────────────────────────────────────────────
-function buildBoard(){
-  const boardEl=document.getElementById('board');
-  boardEl.innerHTML='';cellEls=[];
-  for(let r=0;r<8;r++){
-    cellEls[r]=[];
-    for(let c=0;c<7;c++){
-      const cell=document.createElement('div');
-      cell.className='cell';cellEls[r][c]=cell;
-      if(!isActive(r,c)){
-        cell.classList.add('inactive');
-      } else {
-        cell._cellCoords={r,c};
-        if(TARGET_SET.has(`${r},${c}`)) cell.classList.add('target-cell');
-        const ov=document.createElement('div');ov.className='cell-piece-overlay';cell.appendChild(ov);
-        const lb=document.createElement('span');lb.className='cell-label';lb.textContent=getCellLabel(r,c);cell.appendChild(lb);
-        
-        cell.addEventListener('mouseenter',()=>{hoverCell={r,c};refreshBoard()});
-        cell.addEventListener('mouseleave',()=>{hoverCell=null;refreshBoard()});
-        cell.addEventListener('click',()=>onCellClick(r,c));
-        cell.addEventListener('touchstart',e=>onCellTouchStart(r,c,e),{passive:false});
-      }
-      boardEl.appendChild(cell);
-    }
-  }
-}
+function placedCentroid(pid){const bc=[];for(let r=0;r<8;r++)for(let c=0;c<7;c++)if(boardPieces[r][c]===pid)bc.push([r,c]);if(!bc.length)return null;return{r:bc.reduce((s,[r])=>s+r,0)/bc.length,c:bc.reduce((s,[,c])=>s+c,0)/bc.length};}
+function bestAnchorNearCentroid(pid,nc,tR,tC){const aR=nc.reduce((s,[r])=>s+r,0)/nc.length,aC=nc.reduce((s,[,c])=>s+c,0)/nc.length,bR=Math.round(tR-aR),bC=Math.round(tC-aC);for(let rad=0;rad<=3;rad++)for(let dr=-rad;dr<=rad;dr++)for(let dc=-rad;dc<=rad;dc++){if(Math.abs(dr)!==rad&&Math.abs(dc)!==rad)continue;if(isValidPlacement(pid,bR+dr,bC+dc))return{ar:bR+dr,ac:bC+dc};}return null;}
+function applyTransformToPlaced(pid,fn){const ct=placedCentroid(pid);removePiece(pid);pieces[pid].cells=fn(pieces[pid].cells);const a=ct?bestAnchorNearCentroid(pid,pieces[pid].cells,ct.r,ct.c):null;if(a){placePiece(pid,a.ar,a.ac);placedAnchor=a;scheduleSolutionCount();buildAllTrays();updateControls();refreshBoard();ghost.hide();}else{scheduleSolutionCount();buildAllTrays();updateControls();refreshBoard();ghost.showAtBoard();}}
+function rotateSelected(){if(selectedPieceId===null)return;if(pieces[selectedPieceId].placed)applyTransformToPlaced(selectedPieceId,rotateCW);else{pieces[selectedPieceId].cells=rotateCW(pieces[selectedPieceId].cells);ghost.refresh();buildAllTrays();refreshBoard();}}
+function flipSelected(){if(selectedPieceId===null)return;if(pieces[selectedPieceId].placed)applyTransformToPlaced(selectedPieceId,flipH);else{pieces[selectedPieceId].cells=flipH(pieces[selectedPieceId].cells);ghost.refresh();buildAllTrays();refreshBoard();}}
+function removeSelectedToTray(){if(selectedPieceId===null)return;if(pieces[selectedPieceId].placed)removePiece(selectedPieceId);selectedPieceId=null;placedAnchor=null;ghost.hide();buildAllTrays();updateControls();refreshBoard();scheduleSolutionCount();}
 
-function refreshBoard(previewAr,previewAc){
-  const pid=selectedPieceId;
-  
-  const selPlacedCoords=new Set();
-  if(pid!==null&&pieces[pid].placed){
-    for(let r=0;r<8;r++) for(let c=0;c<7;c++) if(boardPieces[r][c]===pid) selPlacedCoords.add(`${r},${c}`);
-  }
-
-  for(let r=0;r<8;r++){
-    for(let c=0;c<7;c++){
-      if(!isActive(r,c)) continue;
-      const cell=cellEls[r][c];
-      const ov=cell.querySelector('.cell-piece-overlay');
-      const occupant=boardPieces[r][c];
-      
-      cell.classList.toggle('target-cell', TARGET_SET.has(`${r},${c}`));
-      
-      if(occupant!==null){
-        ov.style.background=pieces[occupant].color;ov.classList.add('visible');cell.classList.add('covered');
-      } else {
-        ov.classList.remove('visible');cell.classList.remove('covered');
-      }
-      cell.classList.remove('preview-valid','preview-invalid','sel-placed-ring');
-      if(selPlacedCoords.has(`${r},${c}`)) cell.classList.add('sel-placed-ring');
-    }
-  }
-  
-  // Desktop hover preview (non-drag)
-  if(!ghost.dragging&&pid!==null&&!pieces[pid].placed&&hoverCell!==null){
-    const{r:ar,c:ac}=hoverCell;
-    const valid=isValidPlacement(pid,ar,ac);
-    const cls=valid?'preview-valid':'preview-invalid';
-    for(const[dr,dc] of pieces[pid].cells){
-      const r=ar+dr,c=ac+dc;
-      if(r>=0&&r<8&&c>=0&&c<7&&isActive(r,c)) cellEls[r][c].classList.add(cls);
-    }
-  }
-  
-  // Drag preview — only show ghost piece, no board cell highlights during drag
-  // (ghost drop-shadow color indicates valid/invalid)
-}
-
-// ─── Tray builder ─────────────────────────────────────────────────────────────
-function buildOneTray(containerId,progressId,isMobile){
-  const tray=document.getElementById(containerId);if(!tray) return;
-  tray.innerHTML='';
-  let placedCount=0;
-  for(let i=0;i<pieces.length;i++){
-    const p=pieces[i];
-    if(p.placed) placedCount++;
-    const wrap=document.createElement('div');
-    wrap.className='piece-wrapper';
-    const isSelected=selectedPieceId===i;
-    if(p.placed&&isSelected) wrap.classList.add('placed-selected');
-    else if(p.placed) wrap.classList.add('placed-away');
-    else if(isSelected) wrap.classList.add('selected');
-
-    const rows=p.cells.map(([r])=>r),cols2=p.cells.map(([,c])=>c);
-    const maxR=Math.max(...rows),maxC=Math.max(...cols2);
-    const cs=new Set(p.cells.map(([r,c])=>`${r},${c}`));
-    const mg=document.createElement('div');
-    mg.className='piece-mini';
-    mg.style.gridTemplateColumns=`repeat(${maxC+1},13px)`;
-    mg.style.gridTemplateRows=`repeat(${maxR+1},13px)`;
-    mg.style.display='grid';
-    for(let r=0;r<=maxR;r++){
-      for(let c=0;c<=maxC;c++){
-        const mc=document.createElement('div');
-        if(cs.has(`${r},${c}`)){mc.className='piece-mini-cell';mc.style.background=p.color;}
-        else{mc.style.width='13px';mc.style.height='13px';}
-        mg.appendChild(mc);
-      }
-    }
-    wrap.appendChild(mg);
-
-    // Desktop click handler
-    wrap.addEventListener('click',e=>{
-      if(ghost.dragging) return;
-      startTimerIfNeeded();
-      if(selectedPieceId===i&&!pieces[i].placed){
-        selectedPieceId=null;placedAnchor=null;ghost.hide();
-      } else {
-        if(selectedPieceId===i&&pieces[i].placed){selectedPieceId=null;placedAnchor=null;ghost.hide();}
-        else{selectPiece(i);}
-      }
-      buildAllTrays();updateControls();refreshBoard();
-    });
-
-    // Mobile: tap piece → select it and show ghost centered on board
-    // The user then touches the board to start dragging.
-    if(isMobile){
-      wrap.addEventListener('touchstart',e=>{
-        e.preventDefault();
-        startTimerIfNeeded();
-        selectPiece(i);
-        buildAllTrays();updateControls();refreshBoard();
-        ghost.showAtBoard();
-      },{passive:false});
-    }
-
-    tray.appendChild(wrap);
-  }
-  const prog=document.getElementById(progressId);if(prog) prog.textContent=`(${placedCount}/10)`;
-}
-
-function buildAllTrays(){
-  buildOneTray('piecesTray','progressText',false);
-  buildOneTray('piecesTrayMob','progressTextMob',true);
-}
-
-function selectPiece(i){
-  if(selectedPieceId===i) return;
-  if(pieces[i].placed){
-    removePiece(i);
-    scheduleSolutionCount();
-  }
-  selectedPieceId=i;
-  placedAnchor=null;
-}
-
-// ─── Controls ─────────────────────────────────────────────────────────────────
-function updateControls(){
-  const has=selectedPieceId!==null;
-  const isPlaced=has&&pieces[selectedPieceId].placed;
-  ['btnRotate','btnFlip','btnHint'].forEach(id=>{const el=document.getElementById(id);if(el) el.disabled=!has;});
-  // Desktop remove button
-  const btnRem=document.getElementById('btnRemove');
-  if(btnRem) btnRem.style.display=isPlaced?'flex':'none';
-  
-  const info=document.getElementById('selectedInfo');
-  if(info){
-    if(!has) info.textContent='\u2190 Select a piece to begin';
-    else if(isPlaced) info.textContent=`Piece ${pieces[selectedPieceId].name} placed \u2022 rotate/flip/remove`;
-    else info.textContent=`Piece ${pieces[selectedPieceId].name} selected \u2022 click board to place`;
-  }
-  ['mbRotate','mbFlip','mbHint'].forEach(id=>{const el=document.getElementById(id);if(el) el.disabled=!has;});
-  
-  // Mobile remove button: show when placed piece selected, hide hint
-  const mbRem=document.getElementById('mbRemove');
-  const mbHint=document.getElementById('mbHint');
-  const mbBtns=document.querySelector('.mobile-btns');
-  if(mbRem&&mbHint&&mbBtns){
-    if(isPlaced){
-      mbRem.style.display='flex';
-      mbBtns.classList.add('has-remove');
-    } else {
-      mbRem.style.display='none';
-      mbBtns.classList.remove('has-remove');
-    }
-  }
-  
-  const minfo=document.getElementById('mobileSelectedInfo');
-  if(minfo){
-    if(!has) minfo.textContent='Tap a piece below, then touch board to place';
-    else if(isPlaced) minfo.textContent=`Piece ${pieces[selectedPieceId].name} placed \u2022 tap it to move, or remove`;
-    else minfo.textContent=`Touch board to drag piece ${pieces[selectedPieceId].name}`;
-  }
-}
-
-// ─── Rotate / Flip ────────────────────────────────────────────────────────────
-function placedCentroid(pid){
-  const boardCells=[];
-  for(let r=0;r<8;r++) for(let c=0;c<7;c++) if(boardPieces[r][c]===pid) boardCells.push([r,c]);
-  if(!boardCells.length) return null;
-  const avgR=boardCells.reduce((s,[r])=>s+r,0)/boardCells.length;
-  const avgC=boardCells.reduce((s,[,c])=>s+c,0)/boardCells.length;
-  return{r:avgR,c:avgC};
-}
-
-function bestAnchorNearCentroid(pid,newCells,targetR,targetC){
-  const avgDr=newCells.reduce((s,[r])=>s+r,0)/newCells.length;
-  const avgDc=newCells.reduce((s,[,c])=>s+c,0)/newCells.length;
-  const baseAr=Math.round(targetR-avgDr);
-  const baseAc=Math.round(targetC-avgDc);
-  for(let radius=0;radius<=3;radius++){
-    for(let dr=-radius;dr<=radius;dr++){
-      for(let dc=-radius;dc<=radius;dc++){
-        if(Math.abs(dr)!==radius&&Math.abs(dc)!==radius) continue;
-        const ar=baseAr+dr,ac=baseAc+dc;
-        if(isValidPlacement(pid,ar,ac)) return{ar,ac};
-      }
-    }
-  }
-  return null;
-}
-
-function applyTransformToPlaced(pid,transformFn){
-  const centroid=placedCentroid(pid);
-  removePiece(pid);
-  pieces[pid].cells=transformFn(pieces[pid].cells);
-  const anchor=centroid?bestAnchorNearCentroid(pid,pieces[pid].cells,centroid.r,centroid.c):null;
-  if(anchor){
-    placePiece(pid,anchor.ar,anchor.ac);
-    placedAnchor=anchor;
-    scheduleSolutionCount();
-    buildAllTrays();updateControls();refreshBoard();ghost.hide();
-  } else {
-    scheduleSolutionCount();
-    buildAllTrays();updateControls();refreshBoard();ghost.showAtBoard();
-  }
-}
-
-function rotateSelected(){
-  if(selectedPieceId===null) return;
-  const pid=selectedPieceId;
-  if(pieces[pid].placed){
-    applyTransformToPlaced(pid,rotateCW);
-  } else {
-    pieces[pid].cells=rotateCW(pieces[pid].cells);
-    ghost.refresh();buildAllTrays();refreshBoard();
-  }
-}
-function flipSelected(){
-  if(selectedPieceId===null) return;
-  const pid=selectedPieceId;
-  if(pieces[pid].placed){
-    applyTransformToPlaced(pid,flipH);
-  } else {
-    pieces[pid].cells=flipH(pieces[pid].cells);
-    ghost.refresh();buildAllTrays();refreshBoard();
-  }
-}
-function removeSelectedToTray(){
-  if(selectedPieceId===null) return;
-  const pid=selectedPieceId;
-  if(pieces[pid].placed) removePiece(pid);
-  selectedPieceId=null;
-  placedAnchor=null;
-  ghost.hide();
-  buildAllTrays();updateControls();refreshBoard();scheduleSolutionCount();
-}
-
-// ─── Solver ───────────────────────────────────────────────────────────────────
-function solveBoard(board,remaining){
-  let fr=-1,fc=-1;
-  outer:for(let r=0;r<8;r++) for(let c=0;c<7;c++) if(isActive(r,c)&&!TARGET_SET.has(`${r},${c}`)&&board[r][c]===null){fr=r;fc=c;break outer}
-  if(fr===-1) return TARGET_CELLS.every(([r,c])=>board[r][c]===null)?[]:null;
-  for(let i=0;i<remaining.length;i++){
-    const{id,orientations}=remaining[i],rest=remaining.filter((_,j)=>j!==i);
-    for(const ori of orientations){
-      for(const[dr,dc] of ori){
-        const ar=fr-dr,ac=fc-dc;let ok=true;
-        for(const[r2,c2] of ori){const r=ar+r2,c=ac+c2;if(r<0||r>=8||c<0||c>=7||!isActive(r,c)||board[r][c]!==null){ok=false;break}}
-        if(!ok) continue;
-        for(const[r2,c2] of ori) board[ar+r2][ac+c2]=id;
-        const sub=solveBoard(board,rest);
-        if(sub!==null) return[{id,ar,ac,cells:ori},...sub];
-        for(const[r2,c2] of ori) board[ar+r2][ac+c2]=null;
-      }
-    }
-  }
-  return null;
-}
+function solveBoard(board,rem){let fr=-1,fc=-1;outer:for(let r=0;r<8;r++)for(let c=0;c<7;c++)if(isActive(r,c)&&!TARGET_SET.has(`${r},${c}`)&&board[r][c]===null){fr=r;fc=c;break outer}if(fr===-1)return TARGET_CELLS.every(([r,c])=>board[r][c]===null)?[]:null;for(let i=0;i<rem.length;i++){const{id,orientations}=rem[i],rest=rem.filter((_,j)=>j!==i);for(const ori of orientations)for(const[dr,dc] of ori){const ar=fr-dr,ac=fc-dc;let ok=true;for(const[r2,c2] of ori){const r=ar+r2,c=ac+c2;if(r<0||r>=8||c<0||c>=7||!isActive(r,c)||board[r][c]!==null){ok=false;break}}if(!ok)continue;for(const[r2,c2] of ori)board[ar+r2][ac+c2]=id;const sub=solveBoard(board,rest);if(sub!==null)return[{id,ar,ac,cells:ori},...sub];for(const[r2,c2] of ori)board[ar+r2][ac+c2]=null;}}return null;}
 function showSolvingMsg(t){['solvingMsg','mobileSolvingMsg'].forEach(id=>{const el=document.getElementById(id);if(el){el.textContent=t;el.classList.add('show');}});}
-function hideSolvingMsg(){['solvingMsg','mobileSolvingMsg'].forEach(id=>{const el=document.getElementById(id);if(el) el.classList.remove('show');});}
-function hintSelected(){
-  if(selectedPieceId===null) return;
-  const pid=selectedPieceId;
-  if(pieces[pid].placed){removePiece(pid);scheduleSolutionCount();}
-  showSolvingMsg('Thinking\u2026');
-  ['btnHint','mbHint'].forEach(id=>{const el=document.getElementById(id);if(el) el.disabled=true;});
-  setTimeout(()=>{
-    const board=boardPieces.map(row=>[...row]);
-    const remaining=pieces.filter(p=>!p.placed).map(p=>({id:p.id,orientations:getOrientations(PIECE_DEFS[p.id].cells)}));
-    const solution=solveBoard(board,remaining);
-    hideSolvingMsg();
-    if(!solution){showSolvingMsg('No solution here \u2014 try removing a piece!');setTimeout(hideSolvingMsg,3000);updateControls();buildAllTrays();refreshBoard();ghost.showAtBoard();return;}
-    const placement=solution.find(s=>s.id===pid);
-    if(!placement){updateControls();buildAllTrays();refreshBoard();ghost.showAtBoard();return;}
-    pieces[pid].cells=placement.cells;
-    recordPlacement(placement.ar,placement.ac);
-    placePiece(pid,placement.ar,placement.ac);
-    for(const[dr,dc] of placement.cells){
-      const cell=cellEls[placement.ar+dr][placement.ac+dc];
-      cell.classList.add('hint-flash');setTimeout(()=>cell.classList.remove('hint-flash'),1000);
-    }
-    buildAllTrays();updateControls();refreshBoard();checkWin();scheduleSolutionCount();
-    ghost.hide();
-  },30);
-}
+function hideSolvingMsg(){['solvingMsg','mobileSolvingMsg'].forEach(id=>{const el=document.getElementById(id);if(el)el.classList.remove('show');});}
+function hintSelected(){if(selectedPieceId===null)return;const pid=selectedPieceId;if(pieces[pid].placed){removePiece(pid);scheduleSolutionCount();}showSolvingMsg('Thinking\u2026');['btnHint','mbHint'].forEach(id=>{const el=document.getElementById(id);if(el)el.disabled=true;});setTimeout(()=>{const board=boardPieces.map(r=>[...r]),rem=pieces.filter(p=>!p.placed).map(p=>({id:p.id,orientations:getOrientations(PIECE_DEFS[p.id].cells)})),sol=solveBoard(board,rem);hideSolvingMsg();if(!sol){showSolvingMsg('No solution \u2014 try removing a piece!');setTimeout(hideSolvingMsg,3000);updateControls();buildAllTrays();refreshBoard();ghost.showAtBoard();return;}const pl=sol.find(s=>s.id===pid);if(!pl){updateControls();buildAllTrays();refreshBoard();ghost.showAtBoard();return;}pieces[pid].cells=pl.cells;recordPlacement(pl.ar,pl.ac);placePiece(pid,pl.ar,pl.ac);for(const[dr,dc] of pl.cells){const cell=cellEls[pl.ar+dr][pl.ac+dc];cell.classList.add('hint-flash');setTimeout(()=>cell.classList.remove('hint-flash'),1000);}buildAllTrays();updateControls();refreshBoard();checkWin();scheduleSolutionCount();ghost.hide();},30);}
 
-// ─── Placement ────────────────────────────────────────────────────────────────
-function recordPlacement(ar,ac){
-  startTimerIfNeeded();moveCount++;
-  sv('statMoves',String(moveCount));sv('statMovesMob',String(moveCount));
-  placedAnchor={ar,ac};
-}
-function isValidPlacement(pid,ar,ac){
-  for(const[dr,dc] of pieces[pid].cells){
-    const r=ar+dr,c=ac+dc;
-    if(r<0||r>=8||c<0||c>=7||!isActive(r,c)||boardPieces[r][c]!==null) return false;
-  }
-  return true;
-}
-function placePiece(pid,ar,ac){
-  for(const[dr,dc] of pieces[pid].cells) boardPieces[ar+dr][ac+dc]=pid;
-  pieces[pid].placed=true;
-}
-function removePiece(pid){
-  for(let r=0;r<8;r++) for(let c=0;c<7;c++) if(boardPieces[r][c]===pid) boardPieces[r][c]=null;
-  pieces[pid].placed=false;
-  placedAnchor=null;
-}
+function recordPlacement(ar,ac){startTimerIfNeeded();moveCount++;sv('statMoves',String(moveCount));sv('statMovesMob',String(moveCount));placedAnchor={ar,ac};}
+function placePiece(pid,ar,ac){for(const[dr,dc] of pieces[pid].cells)boardPieces[ar+dr][ac+dc]=pid;pieces[pid].placed=true;}
+function removePiece(pid){for(let r=0;r<8;r++)for(let c=0;c<7;c++)if(boardPieces[r][c]===pid)boardPieces[r][c]=null;pieces[pid].placed=false;placedAnchor=null;}
 
-function onCellClick(r,c){
-  if(ghost.dragging) return;
-  const occ=boardPieces[r][c];
-  if(selectedPieceId!==null&&!pieces[selectedPieceId].placed){
-    if(isValidPlacement(selectedPieceId,r,c)){
-      recordPlacement(r,c);
-      placePiece(selectedPieceId,r,c);
-      buildAllTrays();updateControls();refreshBoard();checkWin();scheduleSolutionCount();
-      ghost.hide();
-    }
-  } else if(occ!==null){
-    const prev=selectedPieceId;
-    if(prev!==null&&prev!==occ&&pieces[prev].placed){removePiece(prev);}
-    removePiece(occ);
-    selectedPieceId=occ;placedAnchor=null;
-    buildAllTrays();updateControls();refreshBoard();scheduleSolutionCount();
-  } else if(selectedPieceId!==null&&pieces[selectedPieceId].placed){
-    selectedPieceId=null;placedAnchor=null;ghost.hide();
-    buildAllTrays();updateControls();refreshBoard();
-  }
-}
+function onCellClick(r,c){if(ghost.dragging)return;const occ=boardPieces[r][c];if(selectedPieceId!==null&&!pieces[selectedPieceId].placed){if(isValidPlacement(selectedPieceId,r,c)){recordPlacement(r,c);placePiece(selectedPieceId,r,c);buildAllTrays();updateControls();refreshBoard();checkWin();scheduleSolutionCount();ghost.hide();}}else if(occ!==null){const prev=selectedPieceId;if(prev!==null&&prev!==occ&&pieces[prev].placed)removePiece(prev);removePiece(occ);selectedPieceId=occ;placedAnchor=null;buildAllTrays();updateControls();refreshBoard();scheduleSolutionCount();}else if(selectedPieceId!==null&&pieces[selectedPieceId].placed){selectedPieceId=null;placedAnchor=null;ghost.hide();buildAllTrays();updateControls();refreshBoard();}}
 
-// Mobile: touch a board cell — select placed piece or pick up if already selected
-function onCellTouchStart(r,c,e){
-  const occ=boardPieces[r][c];
-  if(occ!==null){
-    e.preventDefault();
-    startTimerIfNeeded();
-    
-    if(selectedPieceId===occ){
-      // Already selected → pick it up for repositioning
-      let anchorR=8,anchorC=7;
-      for(let pr=0;pr<8;pr++) for(let pc=0;pc<7;pc++){
-        if(boardPieces[pr][pc]===occ){
-          if(pr<anchorR||(pr===anchorR&&pc<anchorC)){anchorR=pr;anchorC=pc;}
-        }
-      }
-      removePiece(occ);
-      placedAnchor=null;
-      buildAllTrays();updateControls();refreshBoard();scheduleSolutionCount();
-      activeTouchId = e.touches[0].identifier;
-      ghost.startDragFromBoard(anchorR,anchorC,r,c,e.touches[0].clientX,e.touches[0].clientY);
-    } else {
-      // First tap → just select it (show ring + remove button)
-      if(selectedPieceId!==null&&selectedPieceId!==occ&&pieces[selectedPieceId]?.placed){
-        // Don't auto-remove previous; just deselect
-      }
-      selectedPieceId=occ;
-      placedAnchor=null;
-      ghost.hide();
-      buildAllTrays();updateControls();refreshBoard();
-    }
-  } else if(ghost.visible&&!ghost.dragging&&selectedPieceId!==null&&!pieces[selectedPieceId].placed){
-    // Ghost is floating — start drag from this touch
-    e.preventDefault();
-    activeTouchId = e.touches[0].identifier;
-    ghost.startDrag(e.touches[0].clientX,e.touches[0].clientY);
-  } else if(selectedPieceId!==null&&pieces[selectedPieceId].placed){
-    // Tapped empty cell while a placed piece is selected → deselect
-    e.preventDefault();
-    selectedPieceId=null;
-    placedAnchor=null;
-    ghost.hide();
-    buildAllTrays();updateControls();refreshBoard();
-  }
-}
+function onCellTouchStart(r,c,e){const occ=boardPieces[r][c];if(occ!==null){e.preventDefault();startTimerIfNeeded();if(selectedPieceId===occ){let aR=8,aC=7;for(let pr=0;pr<8;pr++)for(let pc=0;pc<7;pc++)if(boardPieces[pr][pc]===occ&&(pr<aR||(pr===aR&&pc<aC))){aR=pr;aC=pc;}removePiece(occ);placedAnchor=null;buildAllTrays();updateControls();refreshBoard();scheduleSolutionCount();activeTouchId=e.touches[0].identifier;ghost.startDragFromBoard(aR,aC,r,c,e.touches[0].clientX,e.touches[0].clientY);}else{selectedPieceId=occ;placedAnchor=null;ghost.hide();buildAllTrays();updateControls();refreshBoard();}}else if(ghost.visible&&!ghost.dragging&&selectedPieceId!==null&&!pieces[selectedPieceId].placed){e.preventDefault();activeTouchId=e.touches[0].identifier;ghost.startDrag(e.touches[0].clientX,e.touches[0].clientY);}else if(selectedPieceId!==null&&pieces[selectedPieceId].placed){e.preventDefault();selectedPieceId=null;placedAnchor=null;ghost.hide();buildAllTrays();updateControls();refreshBoard();}}
 
-// ─── Win ──────────────────────────────────────────────────────────────────────
-function checkWin(){
-  const unc=[];
-  for(let r=0;r<8;r++) for(let c=0;c<7;c++) if(isActive(r,c)&&boardPieces[r][c]===null) unc.push(`${r},${c}`);
-  if(unc.length!==3) return;
-  if(unc.every(k=>TARGET_SET.has(k))){
-    stopTimer();ghost.hide();
-    document.getElementById('winDate').textContent=currentTargetDate.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
-    document.getElementById('winTime').textContent=formatTime(timerSeconds);
-    document.getElementById('winMoves').textContent=String(moveCount);
-    document.getElementById('winOverlay').classList.add('show');
-  }
-}
+function checkWin(){const unc=[];for(let r=0;r<8;r++)for(let c=0;c<7;c++)if(isActive(r,c)&&boardPieces[r][c]===null)unc.push(`${r},${c}`);if(unc.length!==3)return;if(unc.every(k=>TARGET_SET.has(k))){stopTimer();ghost.hide();document.getElementById('winDate').textContent=currentTargetDate.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});document.getElementById('winTime').textContent=fmt(timerSeconds);document.getElementById('winMoves').textContent=String(moveCount);document.getElementById('winOverlay').classList.add('show');}}
 function closeWin(){document.getElementById('winOverlay').classList.remove('show');}
 function resetGame(){stopTimer();initState();buildBoard();buildAllTrays();updateControls();refreshBoard();}
 
-// ─── Keyboard ─────────────────────────────────────────────────────────────────
-document.addEventListener('keydown',e=>{
-  if(e.key==='r'||e.key==='R') rotateSelected();
-  if(e.key==='f'||e.key==='F') flipSelected();
-  if(e.key==='h'||e.key==='H') hintSelected();
-  if(e.key==='x'||e.key==='X'||e.key==='Delete'||e.key==='Backspace') removeSelectedToTray();
-  if(e.key==='Escape'){selectedPieceId=null;placedAnchor=null;ghost.hide();buildAllTrays();updateControls();refreshBoard();}
-});
+document.addEventListener('keydown',e=>{if(e.key==='r'||e.key==='R')rotateSelected();if(e.key==='f'||e.key==='F')flipSelected();if(e.key==='h'||e.key==='H')hintSelected();if(e.key==='x'||e.key==='X'||e.key==='Delete'||e.key==='Backspace')removeSelectedToTray();if(e.key==='Escape'){selectedPieceId=null;placedAnchor=null;ghost.hide();buildAllTrays();updateControls();refreshBoard();}});
+document.body.addEventListener('touchmove',e=>{if(document.body.classList.contains('dragging'))e.preventDefault();},{passive:false});
 
-// ─── Prevent iOS rubber-banding ───────────────────────────────────────────────
-document.body.addEventListener('touchmove', function(e) {
-  if(document.body.classList.contains('dragging')) {
-    e.preventDefault();
-  }
-}, {passive: false});
-
-// ─── Init ─────────────────────────────────────────────────────────────────────
-(function(){
-  currentTargetDate = new Date();
-  updateSubtitle();
-  updateDatePickerUI();
-  initState();buildBoard();buildAllTrays();updateControls();refreshBoard();
-  
-  if(document.fonts && document.fonts.ready) {
-    document.fonts.ready.then(() => {
-      setCellSize();
-      refreshBoard();
-    });
-  }
-})();
+(function(){currentTargetDate=new Date();updateSubtitle();updateDatePickerUI();initState();buildBoard();buildAllTrays();updateControls();refreshBoard();if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{setCellSize();refreshBoard();});})();
 </script>
 </body>
 </html>
