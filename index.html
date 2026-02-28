@@ -343,21 +343,17 @@ const ghost={
   move(cx,cy){
     if(!this.dragging)return;
     const rect=getBoardRect(),cs=getCellSize();
-    // The "intended" position: above the finger by FINGER_OFFSET
-    const intendedX=cx, intendedY=cy-FINGER_OFFSET;
-    // Clamp to board bounds with generous buffer (3 cells) so we always snap near the board
+    // Detect which cell the FINGER is over (no offset — accurate for all rows including bottom)
     const buf=cs*3;
-    const nearBoard=intendedX>rect.left-buf&&intendedX<rect.right+buf&&
-                    intendedY>rect.top-buf&&intendedY<rect.bottom+buf;
+    const nearBoard=cx>rect.left-buf&&cx<rect.right+buf&&
+                    cy>rect.top-buf&&cy<rect.bottom+buf;
     if(nearBoard){
-      // Clamp to board edges for cell detection
-      const clampX=Math.max(rect.left,Math.min(rect.right-1,intendedX));
-      const clampY=Math.max(rect.top,Math.min(rect.bottom-1,intendedY));
-      const cell=this._cellFromPoint(clampX,clampY);
+      const cell=this._cellFromPoint(cx,cy);
       if(cell.r!==null){
         const ar=cell.r-this.grabR,ac=cell.c-this.grabC;
         this.lastAr=ar;this.lastAc=ac;
         const el=document.getElementById('dragGhost');
+        // Ghost snaps to exact grid position — what you see is where it places
         el.style.left=(rect.left+ac*cs)+'px';el.style.top=(rect.top+ar*cs)+'px';
         const valid=isValidPlacement(selectedPieceId,ar,ac),overlap=!valid&&isOverlapping(selectedPieceId,ar,ac);
         el.className='visible snapped '+(valid?'over-valid':'over-invalid');
@@ -365,26 +361,29 @@ const ghost={
         refreshBoard();return;
       }
     }
-    // Too far from board — free follow (with FINGER_OFFSET)
+    // Too far from board — free follow with offset so piece floats above finger
     this.lastAr=null;this.lastAc=null;
     const el=document.getElementById('dragGhost');
     el.style.left=(cx-this.offsetX)+'px';el.style.top=(cy-this.offsetY)+'px';
     el.className='visible dragging';this._setGhostStyle('normal');refreshBoard();
   },
   endDrag(){if(!this.dragging)return;this.dragging=false;document.body.classList.remove('dragging');this._setGhostStyle('normal');const ar=this.lastAr,ac=this.lastAc;if(ar!==null&&selectedPieceId!==null&&!pieces[selectedPieceId].placed&&isValidPlacement(selectedPieceId,ar,ac)){recordPlacement(ar,ac);placePiece(selectedPieceId,ar,ac);this.hide();buildAllTrays();updateControls();refreshBoard();checkWin();scheduleSolutionCount();}else if(this._savedAr!==null&&selectedPieceId!==null&&!pieces[selectedPieceId].placed){this._savedAr=null;this._savedAc=null;this.showAtBoard();buildAllTrays();updateControls();refreshBoard();scheduleSolutionCount();}else{this.showAtBoard();refreshBoard();}},
-  // Math-based cell detection with clamping to valid cells
+  // Math-based cell detection — works from raw coords, no clamping
   _cellFromPoint(x,y){
     const rect=getBoardRect(),cs=getCellSize();
-    const col=Math.round((x-rect.left)/cs-.5),row=Math.round((y-rect.top)/cs-.5);
-    // Clamp to grid bounds
-    const cr=Math.max(0,Math.min(7,row)),cc=Math.max(0,Math.min(6,col));
-    if(isActive(cr,cc))return{r:cr,c:cc};
-    // Search outward for nearest active cell (spiral search up to 3 cells)
+    // Raw row/col from pixel position (may be outside grid bounds)
+    const rawCol=(x-rect.left)/cs-.5, rawRow=(y-rect.top)/cs-.5;
+    const col=Math.round(rawCol),row=Math.round(rawRow);
+    // If directly on an active cell, use it
+    if(row>=0&&row<8&&col>=0&&col<7&&isActive(row,col))return{r:row,c:col};
+    // Search outward for nearest active cell using actual distance from raw position
     let best=null,bestDist=Infinity;
-    for(let dr=-3;dr<=3;dr++)for(let dc=-3;dc<=3;dc++){
-      const rr=cr+dr,rc=cc+dc;
-      if(rr>=0&&rr<8&&rc>=0&&rc<7&&isActive(rr,rc)){
-        const d=dr*dr+dc*dc;if(d<bestDist){bestDist=d;best={r:rr,c:rc};}
+    for(let r=Math.max(0,row-3);r<=Math.min(7,row+3);r++){
+      for(let c=Math.max(0,col-3);c<=Math.min(6,col+3);c++){
+        if(!isActive(r,c))continue;
+        // Distance from the raw (fractional) position, not the rounded one
+        const dr=r-rawRow,dc=c-rawCol,d=dr*dr+dc*dc;
+        if(d<bestDist){bestDist=d;best={r,c};}
       }
     }
     return best||{r:null,c:null};
