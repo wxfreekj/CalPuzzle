@@ -76,6 +76,7 @@
   .board-container{
     background:var(--board-bg);border:3px solid var(--board-border);border-radius:10px;padding:10px;
     box-shadow:0 8px 28px rgba(60,35,10,.22),inset 0 1px 0 rgba(255,255,255,.3);flex-shrink:0;touch-action:none;
+    position:relative;
   }
   .board{display:grid;grid-template-columns:repeat(7,var(--cs));grid-template-rows:repeat(8,var(--cs));gap:0;touch-action:none}
   .cell{
@@ -109,6 +110,11 @@
   #dragGhost.snapped{opacity:.95}
   #dragGhost.over-valid{filter:drop-shadow(0 6px 18px rgba(50,160,80,.55))}
   #dragGhost.over-invalid{filter:drop-shadow(0 6px 18px rgba(180,50,50,.5))}
+
+  /* Hint penalty X marks */
+  .hint-penalties{position:absolute;inset:0;display:flex;flex-wrap:wrap;align-content:flex-start;justify-content:flex-end;padding:4px 6px;gap:0;z-index:10;pointer-events:none}
+  .hint-x{font-size:clamp(48px,12vw,72px);font-weight:900;color:rgba(190,25,25,.7);line-height:.85;text-shadow:0 2px 6px rgba(0,0,0,.3);animation:hintXPop .4s cubic-bezier(.34,1.56,.64,1) both;-webkit-text-stroke:1.5px rgba(120,10,10,.5);transform:rotate(var(--rot,0deg))}
+  @keyframes hintXPop{from{transform:scale(0) rotate(calc(var(--rot,0deg) - 20deg));opacity:0}60%{transform:scale(1.2) rotate(calc(var(--rot,0deg) + 5deg));opacity:1}to{transform:scale(1) rotate(var(--rot,0deg));opacity:1}}
   .ghost-grid{display:grid;gap:0}
   .ghost-cell{border-radius:2px}
 
@@ -217,6 +223,7 @@
   <div class="win-summary">
     <div class="win-stat"><div class="win-stat-val" id="winTime">&mdash;</div><div class="win-stat-lbl">Time</div></div>
     <div class="win-stat"><div class="win-stat-val" id="winMoves">&mdash;</div><div class="win-stat-lbl">Moves</div></div>
+    <div class="win-stat" id="winHintStat" style="display:none"><div class="win-stat-val" id="winHints" style="color:#B52020">&mdash;</div><div class="win-stat-lbl">Hints</div></div>
   </div>
   <button class="btn" style="margin:auto;max-width:160px;padding:10px 20px;font-size:14px;flex:none;min-height:48px" onclick="closeWin()">Keep Playing</button>
 </div></div>
@@ -234,7 +241,7 @@
 </div></div>
 
 <div class="game-area">
-  <div class="board-container" id="boardContainer"><div class="board" id="board"></div></div>
+  <div class="board-container" id="boardContainer"><div class="hint-penalties" id="hintPenalties"></div><div class="board" id="board"></div></div>
   <div class="sidebar">
     <div class="panel"><h3>Progress</h3><div class="stats-grid">
       <div class="stat-box"><div class="stat-icon">&#9201;</div><div class="stat-value" id="statTime">0:00</div><div class="stat-label">Time</div></div>
@@ -312,8 +319,8 @@ function rotateCW(c){return normalize(c.map(([r,c])=>[c,-r]))}
 function flipH(c){return normalize(c.map(([r,c])=>[r,-c]))}
 
 let pieces,boardPieces,cellEls=[];
-let selectedPieceId=null,hoverCell=null,moveCount=0,timerStarted=false,timerSeconds=0,timerInterval=null,solComputeTimer=null,placedAnchor=null;
-function initState(){pieces=PIECE_DEFS.map(p=>({...p,cells:p.cells.map(c=>[...c]),placed:false}));boardPieces=Array.from({length:8},()=>Array(7).fill(null));selectedPieceId=null;hoverCell=null;placedAnchor=null;moveCount=0;timerStarted=false;timerSeconds=0;if(timerInterval){clearInterval(timerInterval);timerInterval=null;}if(solComputeTimer){clearTimeout(solComputeTimer);solComputeTimer=null;}ghost.hide();updateAllStats();}
+let selectedPieceId=null,hoverCell=null,moveCount=0,timerStarted=false,timerSeconds=0,timerInterval=null,solComputeTimer=null,placedAnchor=null,hintCount=0;
+function initState(){pieces=PIECE_DEFS.map(p=>({...p,cells:p.cells.map(c=>[...c]),placed:false}));boardPieces=Array.from({length:8},()=>Array(7).fill(null));selectedPieceId=null;hoverCell=null;placedAnchor=null;moveCount=0;timerStarted=false;timerSeconds=0;hintCount=0;renderHintPenalties();if(timerInterval){clearInterval(timerInterval);timerInterval=null;}if(solComputeTimer){clearTimeout(solComputeTimer);solComputeTimer=null;}ghost.hide();updateAllStats();}
 function startTimerIfNeeded(){if(timerStarted)return;timerStarted=true;timerInterval=setInterval(()=>{timerSeconds++;const s=fmt(timerSeconds);sv('statTime',s,'ticking');sv('statTimeMob',s,'ticking');},1000);}
 function stopTimer(){if(timerInterval){clearInterval(timerInterval);timerInterval=null;}}
 function fmt(s){return`${Math.floor(s/60)}:${(s%60).toString().padStart(2,'0')}`;}
@@ -418,7 +425,8 @@ function removeSelectedToTray(){if(selectedPieceId===null)return;if(pieces[selec
 function solveBoard(board,rem){let fr=-1,fc=-1;outer:for(let r=0;r<8;r++)for(let c=0;c<7;c++)if(isActive(r,c)&&!TARGET_SET.has(`${r},${c}`)&&board[r][c]===null){fr=r;fc=c;break outer}if(fr===-1)return TARGET_CELLS.every(([r,c])=>board[r][c]===null)?[]:null;for(let i=0;i<rem.length;i++){const{id,orientations}=rem[i],rest=rem.filter((_,j)=>j!==i);for(const ori of orientations)for(const[dr,dc] of ori){const ar=fr-dr,ac=fc-dc;let ok=true;for(const[r2,c2] of ori){const r=ar+r2,c=ac+c2;if(r<0||r>=8||c<0||c>=7||!isActive(r,c)||board[r][c]!==null){ok=false;break}}if(!ok)continue;for(const[r2,c2] of ori)board[ar+r2][ac+c2]=id;const sub=solveBoard(board,rest);if(sub!==null)return[{id,ar,ac,cells:ori},...sub];for(const[r2,c2] of ori)board[ar+r2][ac+c2]=null;}}return null;}
 function showSolvingMsg(t){['solvingMsg','mobileSolvingMsg'].forEach(id=>{const el=document.getElementById(id);if(el){el.textContent=t;el.classList.add('show');}});}
 function hideSolvingMsg(){['solvingMsg','mobileSolvingMsg'].forEach(id=>{const el=document.getElementById(id);if(el)el.classList.remove('show');});}
-function hintSelected(){if(selectedPieceId===null)return;const pid=selectedPieceId;if(pieces[pid].placed){removePiece(pid);scheduleSolutionCount();}showSolvingMsg('Thinking\u2026');['btnHint','mbHint'].forEach(id=>{const el=document.getElementById(id);if(el)el.disabled=true;});setTimeout(()=>{const board=boardPieces.map(r=>[...r]),rem=pieces.filter(p=>!p.placed).map(p=>({id:p.id,orientations:getOrientations(PIECE_DEFS[p.id].cells)})),sol=solveBoard(board,rem);hideSolvingMsg();if(!sol){showSolvingMsg('No solution \u2014 try removing a piece!');setTimeout(hideSolvingMsg,3000);updateControls();buildAllTrays();refreshBoard();ghost.showAtBoard();return;}const pl=sol.find(s=>s.id===pid);if(!pl){updateControls();buildAllTrays();refreshBoard();ghost.showAtBoard();return;}pieces[pid].cells=pl.cells;recordPlacement(pl.ar,pl.ac);placePiece(pid,pl.ar,pl.ac);for(const[dr,dc] of pl.cells){const cell=cellEls[pl.ar+dr][pl.ac+dc];cell.classList.add('hint-flash');setTimeout(()=>cell.classList.remove('hint-flash'),1000);}buildAllTrays();updateControls();refreshBoard();checkWin();scheduleSolutionCount();ghost.hide();},30);}
+function renderHintPenalties(){const el=document.getElementById('hintPenalties');if(!el)return;el.innerHTML='';for(let i=0;i<hintCount;i++){const x=document.createElement('span');x.className='hint-x';x.textContent='\u2716';const rot=Math.floor(Math.random()*30)-15;x.style.setProperty('--rot',rot+'deg');x.style.animationDelay=(i*0.08)+'s';el.appendChild(x);}}
+function hintSelected(){if(selectedPieceId===null)return;const pid=selectedPieceId;if(pieces[pid].placed){removePiece(pid);scheduleSolutionCount();}showSolvingMsg('Thinking\u2026');['btnHint','mbHint'].forEach(id=>{const el=document.getElementById(id);if(el)el.disabled=true;});setTimeout(()=>{const board=boardPieces.map(r=>[...r]),rem=pieces.filter(p=>!p.placed).map(p=>({id:p.id,orientations:getOrientations(PIECE_DEFS[p.id].cells)})),sol=solveBoard(board,rem);hideSolvingMsg();if(!sol){showSolvingMsg('No solution \u2014 try removing a piece!');setTimeout(hideSolvingMsg,3000);updateControls();buildAllTrays();refreshBoard();ghost.showAtBoard();return;}const pl=sol.find(s=>s.id===pid);if(!pl){updateControls();buildAllTrays();refreshBoard();ghost.showAtBoard();return;}pieces[pid].cells=pl.cells;hintCount++;renderHintPenalties();recordPlacement(pl.ar,pl.ac);placePiece(pid,pl.ar,pl.ac);for(const[dr,dc] of pl.cells){const cell=cellEls[pl.ar+dr][pl.ac+dc];cell.classList.add('hint-flash');setTimeout(()=>cell.classList.remove('hint-flash'),1000);}buildAllTrays();updateControls();refreshBoard();checkWin();scheduleSolutionCount();ghost.hide();},30);}
 
 function recordPlacement(ar,ac){startTimerIfNeeded();moveCount++;sv('statMoves',String(moveCount));sv('statMovesMob',String(moveCount));placedAnchor={ar,ac};}
 function placePiece(pid,ar,ac){for(const[dr,dc] of pieces[pid].cells)boardPieces[ar+dr][ac+dc]=pid;pieces[pid].placed=true;}
@@ -428,7 +436,7 @@ function onCellClick(r,c){if(ghost.dragging)return;const occ=boardPieces[r][c];i
 
 function onCellTouchStart(r,c,e){const occ=boardPieces[r][c];if(occ!==null){e.preventDefault();startTimerIfNeeded();if(selectedPieceId===occ){let aR=8,aC=7;for(let pr=0;pr<8;pr++)for(let pc=0;pc<7;pc++)if(boardPieces[pr][pc]===occ&&(pr<aR||(pr===aR&&pc<aC))){aR=pr;aC=pc;}removePiece(occ);placedAnchor=null;buildAllTrays();updateControls();refreshBoard();scheduleSolutionCount();activeTouchId=e.touches[0].identifier;ghost.startDragFromBoard(aR,aC,r,c,e.touches[0].clientX,e.touches[0].clientY);}else{selectedPieceId=occ;placedAnchor=null;ghost.hide();buildAllTrays();updateControls();refreshBoard();}}else if(ghost.visible&&!ghost.dragging&&selectedPieceId!==null&&!pieces[selectedPieceId].placed){e.preventDefault();activeTouchId=e.touches[0].identifier;ghost.startDrag(e.touches[0].clientX,e.touches[0].clientY);}else if(selectedPieceId!==null&&pieces[selectedPieceId].placed){e.preventDefault();selectedPieceId=null;placedAnchor=null;ghost.hide();buildAllTrays();updateControls();refreshBoard();}}
 
-function checkWin(){const unc=[];for(let r=0;r<8;r++)for(let c=0;c<7;c++)if(isActive(r,c)&&boardPieces[r][c]===null)unc.push(`${r},${c}`);if(unc.length!==3)return;if(unc.every(k=>TARGET_SET.has(k))){stopTimer();ghost.hide();document.getElementById('winDate').textContent=currentTargetDate.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});document.getElementById('winTime').textContent=fmt(timerSeconds);document.getElementById('winMoves').textContent=String(moveCount);document.getElementById('winOverlay').classList.add('show');}}
+function checkWin(){const unc=[];for(let r=0;r<8;r++)for(let c=0;c<7;c++)if(isActive(r,c)&&boardPieces[r][c]===null)unc.push(`${r},${c}`);if(unc.length!==3)return;if(unc.every(k=>TARGET_SET.has(k))){stopTimer();ghost.hide();document.getElementById('winDate').textContent=currentTargetDate.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});document.getElementById('winTime').textContent=fmt(timerSeconds);document.getElementById('winMoves').textContent=String(moveCount);const hs=document.getElementById('winHintStat');if(hs){if(hintCount>0){hs.style.display='';document.getElementById('winHints').textContent=String(hintCount);}else{hs.style.display='none';}}document.getElementById('winOverlay').classList.add('show');}}
 function closeWin(){document.getElementById('winOverlay').classList.remove('show');}
 function resetGame(){stopTimer();initState();buildBoard();buildAllTrays();updateControls();refreshBoard();}
 
